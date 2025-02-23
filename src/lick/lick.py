@@ -3,8 +3,7 @@ import warnings
 from typing import TYPE_CHECKING, Optional
 
 import numpy as np
-
-import lick._vendor.vectorplot.core as _lic
+import rlic
 
 if TYPE_CHECKING:
     from matplotlib.axes import Axes
@@ -119,13 +118,7 @@ def lick(
     texture = rng.normal(0.5, 0.001**0.5, v1.shape).astype(v1.dtype, copy=False)
     kernel = np.sin(np.arange(kernel_length, dtype=v1.dtype) * np.pi / kernel_length)
 
-    out = np.empty_like(v1)
-    image = texture
-    for _ in range(niter_lic):
-        out[:, :] = 0.0
-        _lic.line_integral_convolution(v1, v2, image, kernel, out=out)
-        image[:, :] = out[:, :]
-
+    image = rlic.convolve(texture, v1, v2, kernel=kernel, iterations=niter_lic)
     image = _equalize_hist(image)
     image /= image.max()
 

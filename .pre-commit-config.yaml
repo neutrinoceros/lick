@@ -20,12 +20,6 @@ repos:
   - id: ruff
     args: [--fix]
 
-- repo: https://github.com/MarcoGorelli/cython-lint
-  rev: v0.16.6
-  hooks:
-  - id: cython-lint
-    args: [--no-pycodestyle]
-
 - repo: https://github.com/macisamuele/language-formatters-pre-commit-hooks
   rev: v2.14.0
   hooks:

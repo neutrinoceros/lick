@@ -1,7 +1,6 @@
 name: CI (bleeding edge)
 # goals: check stability against
 # - dev version of numpy, matplotlib and scipy
-# - building with future pip default options
 
 on:
   push:
@@ -29,38 +28,25 @@ jobs:
       with:
         fetch-depth: 0
 
-    - name: Set up Python
-      uses: actions/setup-python@42375524e23c412d93fb67b49958b491fce71c38 # v5.4.0
-      with:
-        python-version: 3.13-dev
-
     - uses: astral-sh/setup-uv@1edb52594c857e2b5b13128931090f0640537287 # v5.3.0
       with:
+        python-version: 3.13
         cache-dependency-glob: |
           **/requirements/tests.txt
           **/pyproject.toml
 
     - name: Configure uv
       run: |
-        echo "UV_PYTHON_PREFERENCE=only-system" >> $GITHUB_ENV
         echo "UV_PYTHON=3.13" >> $GITHUB_ENV
         echo "UV_PRERELEASE=allow" >> $GITHUB_ENV
         echo "UV_INDEX=https://pypi.anaconda.org/scientific-python-nightly-wheels/simple" >> $GITHUB_ENV
         echo "UV_INDEX_STRATEGY=unsafe-best-match" >> $GITHUB_ENV
 
-    - name: Install dependencies
-      run: |
-        uv venv
-        uv pip install --no-build setuptools wheel numpy matplotlib scipy Cython
-
     - name: Build
       run: |
-        uv pip install --no-build-isolation .
-        uv pip install --requirement requirements/tests.txt
-
+        uv pip install scipy matplotlib numpy rlic --requirement requirements/tests.txt --no-build
+        uv pip install . --no-deps
     - run: uv pip list
-
     - name: Run tests
       run: |
-        source .venv/bin/activate
         pytest --color=yes -ra

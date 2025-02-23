@@ -64,9 +64,3 @@ lick_box_plot(
 )
 plt.show()
 ```
-
-
-### vectorplot
-
-The core LIC implementation was authored by Anne Archibald, and is forked from
-https://github.com/aarchiba/scikits-vectorplot
