@@ -1,6 +1,6 @@
 # lick
 [![PyPI](https://img.shields.io/pypi/v/lick.svg?logo=pypi&logoColor=white&label=PyPI)](https://pypi.org/project/lick/)
-[![pre-commit.ci status](https://results.pre-commit.ci/badge/github/volodia99/lick/main.svg)](https://results.pre-commit.ci/latest/github/volodia99/lick/main)
+[![pre-commit.ci status](https://results.pre-commit.ci/badge/github/la-niche/lick/main.svg)](https://results.pre-commit.ci/latest/github/la-niche/lick/main)
 [![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/charliermarsh/ruff/main/assets/badge/v2.json)](https://github.com/charliermarsh/ruff)
 
 
@@ -15,7 +15,7 @@ Authors: Gaylor Wafflard-Fernandez, Clément Robert
 Author-email: gaylor.wafflard@univ-grenoble-alpes.fr
 
 <p align="center">
-    <img src="https://raw.githubusercontent.com/volodia99/lick/main/imgs/lick.png" width="600"></a>
+    <img src="https://raw.githubusercontent.com/la-niche/lick/main/imgs/lick.png" width="600"></a>
 </p>
 
 ## Installation
