@@ -31,7 +31,7 @@ class Inputs:
 
 
 def radius(x: FArray, y: FArray) -> FArray:
-    return np.sqrt(x**2 + y**2)
+    return np.hypot(x, y)
 
 
 def azimuth(x: FArray, y: FArray) -> FArray:
