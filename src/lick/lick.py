@@ -94,7 +94,7 @@ def interpol(
         return (
             interpn(
                 obs=[xi.flatten(), yi.flatten()],
-                grids=[xx[0, :], yy[:, 0]],
+                grids=[xx[:, 0], yy[0, :]],
                 vals=arr.flatten(),
                 method=method,
             )
