@@ -39,6 +39,16 @@ content-type = "text/markdown"
 [project.urls]
 Homepage = "https://github.com/la-niche/lick"
 
+[dependency-groups]
+test = [
+    "pytest>=9.0.0",
+    "pytest-mpl>=0.16.1",
+]
+typecheck = [
+    "matplotlib>=3.8.1",
+    "mypy>=1.15.0",
+]
+
 [tool.flit.sdist]
 include = ["CITATION.cff"]
 
@@ -69,7 +79,9 @@ warn_return_any = true
 warn_unused_configs = true
 warn_unreachable = true
 
-[tool.pytest.ini_options]
+[tool.pytest]
+minversion = "9.0"
+strict = true
 addopts = [
     "-ra",
 ]
@@ -78,12 +90,28 @@ filterwarnings = [
     'ignore:datetime\.datetime\.utcfromtimestamp\(\) is deprecated:DeprecationWarning', # https://github.com/dateutil/dateutil/pull/1285
 ]
 
-[dependency-groups]
-test = [
-    "pytest>=7.0.0",
-    "pytest-mpl>=0.16.1",
+[tool.uv]
+no-build-package = [
+    "numpy",
+    "matplotlib",
+    "pillow",
+    "contourpy",
+    "kiwisolver",
+
+    # all of the following are from pytest-mpl (directly or not)
+    # these constraints should (mostly) become obsolete with https://github.com/matplotlib/pytest-mpl/pull/252
+    "markupsafe",
 ]
-typecheck = [
-    "matplotlib>=3.8.1",
-    "mypy>=1.15.0",
+
+constraint-dependencies = [
+    # https://github.com/matplotlib/pytest-mpl/pull/252
+    "jinja2>=2.10.2",
+    # via matplotlib 3.5
+    "setuptools>=61.0.0",
+    "pyparsing>=2.4.0",
+]
+
+build-constraint-dependencies = [
+    # via matplotlib 3.5
+    "setuptools>=61.0.0",
 ]

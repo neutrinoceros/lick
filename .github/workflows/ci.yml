@@ -35,7 +35,7 @@ jobs:
           python-version: '3.14'
         - os: ubuntu-22.04
           python-version: '3.10'
-          install-args: --resolution=lowest-direct
+          install-args: --resolution=lowest
 
     runs-on: ${{ matrix.os }}
     steps:
