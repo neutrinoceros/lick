@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 import warnings
-from concurrent.futures import ThreadPoolExecutor
 from typing import TYPE_CHECKING, Literal, TypeAlias
 
 import numpy as np
@@ -90,24 +89,19 @@ def interpol(
 
     xi, yi = np.meshgrid(x, y, indexing="xy")
 
-    def closure(arr, method):
-        return interpn(
+    gv1, gv2, gfield = [
+        interpn(
             obs=[xi, yi],
             grids=[xx[:, 0], yy[0, :]],
             vals=arr,
-            method=method,
+            method=meth,
         )
-
-    with ThreadPoolExecutor(3) as pool:
-        futures = [
-            pool.submit(closure, arr, meth)
-            for (arr, meth) in [
-                (v1, method),
-                (v2, method),
-                (field, method_background),
-            ]
+        for (arr, meth) in [
+            (v1, method),
+            (v2, method),
+            (field, method_background),
         ]
-        gv1, gv2, gfield = [f.result() for f in futures]
+    ]
     return (x, y, gv1, gv2, gfield)
 
 
