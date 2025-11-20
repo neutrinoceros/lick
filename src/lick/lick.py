@@ -4,6 +4,7 @@ from typing import TYPE_CHECKING, Literal, TypeAlias
 
 import numpy as np
 import rlic
+from interpn import interpn
 
 if TYPE_CHECKING:
     from matplotlib.axes import Axes
@@ -66,8 +67,6 @@ def interpol(
     ymax: float | None = None,
     size_interpolated: int = 800,
 ):
-    from interpn import interpn
-
     if xmin is None:
         xmin = xx.min()
     if xmax is None:
