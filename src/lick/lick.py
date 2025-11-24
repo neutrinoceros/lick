@@ -86,12 +86,19 @@ def interpol(
     x = np.linspace(xmin, xmax, nxi)
     y = np.linspace(ymin, ymax, nyi)
 
+    if np.ptp(xx[:, 0]) == 0.0:
+        # external indexing='xy'
+        grids = [xx[0, :], yy[:, 0]]
+    else:
+        # external indexing='ij'
+        grids = [xx[:, 0], yy[0, :]]
+
     xi, yi = np.meshgrid(x, y, indexing="xy")
 
     gv1, gv2, gfield = [
         interpn(
             obs=[xi, yi],
-            grids=[xx[:, 0], yy[0, :]],
+            grids=grids,
             vals=arr,
             method=meth,
         )
