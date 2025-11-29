@@ -87,11 +87,14 @@ def interpol(
     y = np.linspace(ymin, ymax, nyi)
 
     if np.ptp(xx[:, 0]) == 0.0:
-        # external indexing='xy'
+        external_indexing = "xy"
         grids = [xx[0, :], yy[:, 0]]
     else:
-        # external indexing='ij'
+        external_indexing = "ij"
         grids = [xx[:, 0], yy[0, :]]
+        v1 = v1.T
+        v2 = v2.T
+        field = field.T
 
     xi, yi = np.meshgrid(x, y, indexing="xy")
 
@@ -108,7 +111,10 @@ def interpol(
             (field, method_background),
         ]
     ]
-    return (x, y, gv1, gv2, gfield)
+    if external_indexing == "xy":
+        return (x, y, gv1, gv2, gfield)
+    else:
+        return (x, y, gv1.T, gv2.T, gfield.T)
 
 
 def lick(
