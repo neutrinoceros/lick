@@ -111,10 +111,7 @@ def interpol(
             (field, method_background),
         ]
     ]
-    if external_indexing == "xy":
-        return (x, y, gv1, gv2, gfield)
-    else:
-        return (x, y, gv1.T, gv2.T, gfield.T)
+    return (x, y, gv1, gv2, gfield)
 
 
 def lick(
