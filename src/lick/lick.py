@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 import warnings
-from functools import partial
 from typing import TYPE_CHECKING, Literal, TypeAlias, cast
 
 import numpy as np
@@ -92,24 +91,23 @@ def interpol(
     float_size = min(arr.dtype.itemsize for arr in (v1, v2, field))
     out_dtype = np.dtype(f"f{float_size}")
 
-    if np.ptp(xx[:, 0]) == 0.0:
-        # external indexing='xy'
+    input_indexing = "xy" if np.ptp(xx[:, 0]) == 0.0 else "ij"
+    if input_indexing == "xy":
         grids = [xx[0, :], yy[:, 0]]
     else:
-        # external indexing='ij'
         grids = [xx[:, 0], yy[0, :]]
     grids = [_.astype(out_dtype) for _ in grids]
+    obs = [o.astype(out_dtype) for o in np.meshgrid(x, y, indexing="xy")]
 
-    xi, yi = np.meshgrid(x, y, indexing="xy")
+    def interpolate(vals: FArray2D, /, *, method: Method) -> FArray2D:
+        if input_indexing == "xy":
+            vals = vals.T
 
-    interpolate = partial(
-        interpn,
-        obs=[o.astype(out_dtype) for o in (xi, yi)],
-        grids=grids,
-    )
-    gv1 = interpolate(vals=v1.astype(out_dtype), method=method)
-    gv2 = interpolate(vals=v2.astype(out_dtype), method=method)
-    gfield = interpolate(vals=field.astype(out_dtype), method=method_background)
+        return interpn(vals=vals.astype(out_dtype), grids=grids, obs=obs, method=method)
+
+    gv1 = interpolate(v1, method=method)
+    gv2 = interpolate(v2, method=method)
+    gfield = interpolate(field, method=method_background)
 
     return (x, y, gv1, gv2, gfield)
 
