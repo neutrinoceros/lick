@@ -6,6 +6,7 @@ import numpy as np
 import rlic
 from interpn import interpn
 
+from lick._interpolate import Interval
 from lick._typing import FArray2D, FArrayND
 
 if TYPE_CHECKING:
@@ -69,24 +70,25 @@ def interpol(
     ymax: float | None = None,
     size_interpolated: int = 800,
 ):
-    if xmin is None:
-        xmin = xx.min()
-    if xmax is None:
-        xmax = xx.max()
-    if ymin is None:
-        ymin = yy.min()
-    if ymax is None:
-        ymax = yy.max()
+    x_interval = Interval(
+        min=float(xx.min()),
+        max=float(xx.max()),
+    ).with_overrides(min=xmin, max=xmax)
+    y_interval = Interval(
+        min=float(yy.min()),
+        max=float(yy.max()),
+    ).with_overrides(min=ymin, max=ymax)
 
     # evenly spaced grid (same spacing in x and y directions)
-    nyi = size_interpolated
-    nxi = int((xmax - xmin) / (ymax - ymin) * nyi)
-    if nxi < nyi:
-        nxi = size_interpolated
-        nyi = int((ymax - ymin) / (xmax - xmin) * nxi)
+    if (xy_ratio := x_interval.span / y_interval.span) >= 1:
+        size_x = int(size_interpolated * xy_ratio)
+        size_y = size_interpolated
+    else:
+        size_x = size_interpolated
+        size_y = int(size_interpolated / xy_ratio)
 
-    x = np.linspace(np.float64(xmin), np.float64(xmax), nxi)
-    y = np.linspace(np.float64(ymin), np.float64(ymax), nyi)
+    x = x_interval.as_evenly_spaced_array(size_x)
+    y = y_interval.as_evenly_spaced_array(size_y)
 
     float_size = min(arr.dtype.itemsize for arr in (v1, v2, field))
     out_dtype = np.dtype(f"f{float_size}")
