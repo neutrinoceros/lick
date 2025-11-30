@@ -438,7 +438,7 @@ typecheck = [
 requires-dist = [
     { name = "interpn", specifier = ">=0.8.0" },
     { name = "matplotlib", specifier = ">=3.5.0" },
-    { name = "numpy", specifier = ">=1.21.2,<3" },
+    { name = "numpy", specifier = ">=1.22,<3" },
     { name = "rlic", specifier = ">=0.2.1" },
 ]
 
