@@ -45,7 +45,6 @@ test = [
     "pytest-mpl>=0.16.1",
 ]
 typecheck = [
-    "matplotlib>=3.8.1",
     "mypy>=1.15.0",
 ]
 

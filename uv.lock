@@ -430,7 +430,6 @@ test = [
     { name = "pytest-mpl" },
 ]
 typecheck = [
-    { name = "matplotlib" },
     { name = "mypy" },
 ]
 
@@ -447,10 +446,7 @@ test = [
     { name = "pytest", specifier = ">=9.0.0" },
     { name = "pytest-mpl", specifier = ">=0.16.1" },
 ]
-typecheck = [
-    { name = "matplotlib", specifier = ">=3.8.1" },
-    { name = "mypy", specifier = ">=1.15.0" },
-]
+typecheck = [{ name = "mypy", specifier = ">=1.15.0" }]
 
 [[package]]
 name = "markupsafe"
