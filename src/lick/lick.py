@@ -1,10 +1,12 @@
 #!/usr/bin/env python
 import warnings
-from typing import TYPE_CHECKING, Literal, TypeAlias
+from typing import TYPE_CHECKING, Literal, TypeAlias, cast
 
 import numpy as np
 import rlic
 from interpn import interpn
+
+from lick._typing import FArray2D, FArrayND
 
 if TYPE_CHECKING:
     from matplotlib.axes import Axes
@@ -53,11 +55,11 @@ Method: TypeAlias = Literal["nearest", "linear", "cubic"]
 
 
 def interpol(
-    xx,
-    yy,
-    v1: np.ndarray,
-    v2: np.ndarray,
-    field: np.ndarray,
+    xx: FArray2D,
+    yy: FArray2D,
+    v1: FArray2D,
+    v2: FArray2D,
+    field: FArray2D,
     *,
     method: Method = "nearest",
     method_background: Method = "nearest",
@@ -143,11 +145,11 @@ def lick(
 
 
 def lick_box(
-    x: np.ndarray,
-    y: np.ndarray,
-    v1: np.ndarray,
-    v2: np.ndarray,
-    field: np.ndarray,
+    x: FArrayND,
+    y: FArrayND,
+    v1: FArray2D,
+    v2: FArray2D,
+    field: FArray2D,
     *,
     size_interpolated: int = 800,
     method: Method = "nearest",
@@ -160,9 +162,11 @@ def lick_box(
     kernel_length: int = 101,
     light_source: bool = True,
 ):
+    yy: FArray2D
+    xx: FArray2D
     if x.ndim == y.ndim == 2:
-        yy = y
-        xx = x
+        yy = cast(FArray2D, y)
+        xx = cast(FArray2D, x)
     elif x.ndim == y.ndim == 1:
         yy, xx = np.meshgrid(y, x)
     else:
@@ -199,11 +203,11 @@ def lick_box(
 def lick_box_plot(
     fig: "Figure",
     ax: "Axes",
-    x: np.ndarray,
-    y: np.ndarray,
-    v1: np.ndarray,
-    v2: np.ndarray,
-    field: np.ndarray,
+    x: FArrayND,
+    y: FArrayND,
+    v1: FArray2D,
+    v2: FArray2D,
+    field: FArray2D,
     *,
     vmin: float | None = None,
     vmax: float | None = None,
