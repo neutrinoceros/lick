@@ -28,7 +28,7 @@ requires-python = ">=3.10"
 dependencies = [
     "interpn>=0.8.0",
     "matplotlib>=3.5.0",
-    "numpy>=1.21.2, <3",
+    "numpy>=1.22, <3",
     "rlic>=0.2.1",
 ]
 
