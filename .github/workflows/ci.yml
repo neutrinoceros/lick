@@ -50,7 +50,7 @@ jobs:
 
     - name: Test
       shell: bash
-      run: uv run --no-sync pytest --color=yes -ra ${{ contains(matrix.install-args, 'lowest') && '-Wdefault' || '' }}
+      run: uv run --no-sync pytest --color=yes -ra --maxfail=10 ${{ contains(matrix.install-args, 'lowest') && '-Wdefault' || '' }}
 
   image-tests:
     name: Image tests
