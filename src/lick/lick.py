@@ -85,8 +85,11 @@ def interpol(
         nxi = size_interpolated
         nyi = int((ymax - ymin) / (xmax - xmin) * nxi)
 
-    x = np.linspace(xmin, xmax, nxi)
-    y = np.linspace(ymin, ymax, nyi)
+    x = np.linspace(np.float64(xmin), np.float64(xmax), nxi)
+    y = np.linspace(np.float64(ymin), np.float64(ymax), nyi)
+
+    float_size = min(arr.dtype.itemsize for arr in (v1, v2, field))
+    out_dtype = np.dtype(f"f{float_size}")
 
     if np.ptp(xx[:, 0]) == 0.0:
         # external indexing='xy'
@@ -94,14 +97,16 @@ def interpol(
     else:
         # external indexing='ij'
         grids = [xx[:, 0], yy[0, :]]
+    grids = [_.astype(out_dtype) for _ in grids]
 
     xi, yi = np.meshgrid(x, y, indexing="xy")
 
+    obs = [_.astype(out_dtype) for _ in (xi, yi)]
     gv1, gv2, gfield = [
         interpn(
-            obs=[xi, yi],
+            obs=obs,
             grids=grids,
-            vals=arr,
+            vals=arr.astype(out_dtype),
             method=meth,
         )
         for (arr, meth) in [
