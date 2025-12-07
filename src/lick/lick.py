@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 import warnings
+from functools import partial
 from typing import TYPE_CHECKING, Literal, TypeAlias, cast
 
 import numpy as np
@@ -101,20 +102,15 @@ def interpol(
 
     xi, yi = np.meshgrid(x, y, indexing="xy")
 
-    obs = [_.astype(out_dtype) for _ in (xi, yi)]
-    gv1, gv2, gfield = [
-        interpn(
-            obs=obs,
-            grids=grids,
-            vals=arr.astype(out_dtype),
-            method=meth,
-        )
-        for (arr, meth) in [
-            (v1, method),
-            (v2, method),
-            (field, method_background),
-        ]
-    ]
+    interpolate = partial(
+        interpn,
+        obs=[o.astype(out_dtype) for o in (xi, yi)],
+        grids=grids,
+    )
+    gv1 = interpolate(vals=v1.astype(out_dtype), method=method)
+    gv2 = interpolate(vals=v2.astype(out_dtype), method=method)
+    gfield = interpolate(vals=field.astype(out_dtype), method=method_background)
+
     return (x, y, gv1, gv2, gfield)
 
 
