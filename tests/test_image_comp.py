@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from math import pi
 from types import FunctionType
-from typing import TypeAlias
+from typing import Literal, TypeAlias
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -28,6 +28,7 @@ class Inputs:
     field: FunctionType
     xrange: Range
     yrange: Range
+    indexing: Literal["ij", "xy"]
 
 
 def radius(x: FArray, y: FArray) -> FArray:
@@ -50,6 +51,7 @@ def azimuth(x: FArray, y: FArray) -> FArray:
                 field=lambda xg, yg, vx, vy: vx**2 + vy**2,
                 xrange=Range(min_value=-1.0, max_value=1.0),
                 yrange=Range(min_value=-1.0, max_value=1.0),
+                indexing="ij",
             ),
             id="radial-velocity",
         ),
@@ -62,6 +64,7 @@ def azimuth(x: FArray, y: FArray) -> FArray:
                 field=lambda xg, yg, vx, vy: vx**2 + vy**2,
                 xrange=Range(min_value=0.0, max_value=2 * pi),
                 yrange=Range(min_value=-pi, max_value=pi),
+                indexing="xy",
             ),
             id="vortices",
         ),
@@ -72,7 +75,7 @@ def test_lick_img(inputs):
     fig, ax = plt.subplots()
     x = inputs.x
     y = inputs.y
-    xg, yg = np.meshgrid(x, y, indexing="ij")
+    xg, yg = np.meshgrid(x, y, indexing=inputs.indexing)
     vx = inputs.vx(xg, yg)
     vy = inputs.vy(xg, yg)
     field = inputs.field(xg, yg, vx, vy)
