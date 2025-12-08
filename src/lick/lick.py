@@ -1,10 +1,9 @@
-from typing import TYPE_CHECKING, Literal, TypeAlias, cast
+from typing import TYPE_CHECKING, cast
 
 import numpy as np
 import rlic
-from interpn import interpn
 
-from lick._interpolate import Interval
+from lick._interpolate import Grid, Interpolator, Interval, Mesh, Method
 from lick._typing import F, FArray2D, FArrayND
 
 if TYPE_CHECKING:
@@ -50,9 +49,6 @@ def _equalize_hist(image):
     return out.astype(image.dtype, copy=False)
 
 
-Method: TypeAlias = Literal["nearest", "linear", "cubic"]
-
-
 def interpol(
     xx: FArray2D,
     yy: FArray2D,
@@ -68,48 +64,45 @@ def interpol(
     ymax: float | None = None,
     size_interpolated: int = 800,
 ):
-    x_interval = Interval(
-        min=float(xx.min()),
-        max=float(xx.max()),
-    ).with_overrides(min=xmin, max=xmax)
-    y_interval = Interval(
-        min=float(yy.min()),
-        max=float(yy.max()),
-    ).with_overrides(min=ymin, max=ymax)
+    if np.ptp(xx[:, 0]) == 0.0:
+        # input indexing = "xy"
+        x = xx[0, :]
+        y = yy[:, 0]
 
-    # evenly spaced grid (same spacing in x and y directions)
-    if (xy_ratio := x_interval.span / y_interval.span) >= 1:
-        size_x = int(size_interpolated * xy_ratio)
-        size_y = size_interpolated
+        # https://github.com/la-niche/lick/issues/246
+        v1, v2, field = [a.T for a in (v1, v2, field)]
     else:
-        size_x = size_interpolated
-        size_y = int(size_interpolated / xy_ratio)
+        # input indexing = "ij"
+        x = xx[:, 0]
+        y = yy[0, :]
 
-    x = x_interval.as_evenly_spaced_array(size_x)
-    y = y_interval.as_evenly_spaced_array(size_y)
+    dt = np.dtype(f"f{min(arr.dtype.itemsize for arr in (v1, v2, field))}")
+    inputs_grid = Grid(x=x.astype(dt), y=y.astype(dt))
 
-    float_size = min(arr.dtype.itemsize for arr in (v1, v2, field))
-    out_dtype = np.dtype(f"f{float_size}")
+    target_grid = Grid.from_intervals(
+        x=Interval(
+            min=float(xx.min()),
+            max=float(xx.max()),
+        ).with_overrides(min=xmin, max=xmax),
+        y=Interval(
+            min=float(yy.min()),
+            max=float(yy.max()),
+        ).with_overrides(min=ymin, max=ymax),
+        small_dim_npoints=size_interpolated,
+        dtype=dt,  # type: ignore[type-var]
+    )
 
-    input_indexing = "xy" if np.ptp(xx[:, 0]) == 0.0 else "ij"
-    if input_indexing == "xy":
-        grids = [xx[0, :], yy[:, 0]]
-    else:
-        grids = [xx[:, 0], yy[0, :]]
-    grids = [_.astype(out_dtype) for _ in grids]
-    obs = [o.astype(out_dtype) for o in np.meshgrid(x, y, indexing="xy")]
+    interpolate = Interpolator(
+        grid=inputs_grid, target_mesh=Mesh.from_grid(target_grid, indexing="xy")
+    )
 
-    def interpolate(vals: FArray2D, /, *, method: Method) -> FArray2D:
-        if input_indexing == "xy":
-            vals = vals.T
-
-        return interpn(vals=vals.astype(out_dtype), grids=grids, obs=obs, method=method)
-
-    gv1 = interpolate(v1, method=method)
-    gv2 = interpolate(v2, method=method)
-    gfield = interpolate(field, method=method_background)
-
-    return (x, y, gv1, gv2, gfield)
+    return (
+        target_grid.x,
+        target_grid.y,
+        interpolate(v1.astype(dt), method=method),
+        interpolate(v2.astype(dt), method=method),
+        interpolate(field.astype(dt), method=method_background),
+    )
 
 
 def lick(

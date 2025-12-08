@@ -1,8 +1,11 @@
+import re
+from itertools import permutations
+
 import numpy as np
 import numpy.testing as npt
 import pytest
 
-from lick._interpolate import Interval
+from lick._interpolate import Grid, Interpolator, Interval, Mesh
 
 f64 = np.float64
 
@@ -87,9 +90,176 @@ def test_interval_span(interval, expected):
     ],
 )
 @pytest.mark.parametrize("size", [5, 8, 64, 128])
-def test_interval_as_evenly_spaced_array(interval, size):
-    a = interval.as_evenly_spaced_array(size)
+@pytest.mark.parametrize("dtype", ("float32", "float64"))
+def test_interval_as_evenly_spaced_array(interval, size, dtype):
+    a = interval.as_evenly_spaced_array(size, dtype=dtype)
 
-    assert a.dtype is np.dtype("float64")
+    assert a.dtype == dtype
     assert a.shape == (size,)
-    npt.assert_almost_equal(np.diff(a, 2), 0.0)
+    npt.assert_almost_equal(np.diff(a, 2), 0.0, decimal=14 if dtype == "float64" else 6)
+
+
+@pytest.mark.parametrize("dtx, dty", permutations(["float32", "float64"]))
+def test_grid_mixed_dtype(dtx, dty):
+    x = np.geomspace(1, 2, 5, dtype=dtx)
+    y = np.linspace(1, 2, 5, dtype=dty)
+    with pytest.raises(
+        TypeError,
+        match=(
+            "x and y must be 1D arrays with the same data type. "
+            f"Got {x.ndim=}, {x.dtype=!s}, {y.ndim=}, {y.dtype=!s}"
+        ),
+    ):
+        Grid(x=x, y=y)
+
+
+BASE_INTERVALS = [
+    Interval(min=0.0, max=1.0),
+    Interval(min=-1.0, max=1.0),
+    Interval(min=-1.0, max=0.0),
+    Interval(min=0.0, max=128.0),
+    Interval(min=-99.0, max=15.0),
+]
+
+
+@pytest.mark.parametrize("x", BASE_INTERVALS)
+@pytest.mark.parametrize("y", BASE_INTERVALS)
+@pytest.mark.parametrize("small_dim_npoints", [-1, 0, 1])
+def test_grid_from_intervals_too_small_npoints(x, y, small_dim_npoints):
+    with pytest.raises(
+        ValueError, match=rf"^Received {small_dim_npoints=}, expected at least 2$"
+    ):
+        Grid.from_intervals(
+            x=x,
+            y=y,
+            small_dim_npoints=small_dim_npoints,
+            dtype="float64",
+        )
+
+
+@pytest.mark.parametrize("x", BASE_INTERVALS)
+@pytest.mark.parametrize("y", BASE_INTERVALS)
+@pytest.mark.parametrize("small_dim_npoints", [2, 5, 64])
+@pytest.mark.parametrize("dtype", ["float32", "float64"])
+def test_grid_from_intervals(x, y, small_dim_npoints, dtype, subtests):
+    g = Grid.from_intervals(x=x, y=y, small_dim_npoints=small_dim_npoints, dtype=dtype)
+    with subtests.test("check small_dim_npoints"):
+        assert min(g.x.size, g.y.size) == small_dim_npoints
+
+    with subtests.test("check array sizes hierarchy"):
+        if x.span < y.span:
+            assert g.x.size <= g.y.size
+        elif x.span > y.span:
+            assert g.x.size >= g.y.size
+        else:
+            assert g.x.size == g.y.size
+
+    with subtests.test("check dtypes"):
+        assert g.x.dtype == dtype
+        assert g.y.dtype == dtype
+
+
+@pytest.mark.parametrize(
+    "x, y",
+    [
+        pytest.param(
+            np.arange(16, dtype="float32"),
+            np.arange(16, dtype="float32"),
+            id="1d-arrays",
+        ),
+        pytest.param(
+            np.eye(4, dtype="float32"),
+            np.eye(4, dtype="float64"),
+            id="mismatched-dtypes",
+        ),
+        pytest.param(
+            np.eye(4, dtype="float32"),
+            np.eye(5, dtype="float32"),
+            id="mismatched-shapes",
+        ),
+    ],
+)
+def test_mesh_invalid_arrays(x, y):
+    with pytest.raises(
+        TypeError,
+        match=re.escape(
+            r"x and y must be 2D arrays with the same data type and shape. "
+            rf"Got {x.shape=}, {x.dtype=!s}, {y.shape=}, {y.dtype=!s}"
+        ),
+    ):
+        Mesh(x=x, y=y)
+
+
+def test_mesh_from_grid_invalid_indexing():
+    x = np.geomspace(1, 2, 5)
+    y = np.linspace(3, 4, 7)
+    g = Grid(x=x, y=y)
+
+    with pytest.raises(ValueError, match="indexing"):
+        # no exact match: the error message is controled by numpy
+        Mesh.from_grid(g, indexing="spam")
+
+
+@pytest.mark.parametrize("dtype", ["float32", "float64"])
+@pytest.mark.parametrize("indexing", ["xy", "ij"])
+def test_mesh_from_grid(dtype, indexing):
+    x = np.geomspace(1, 2, 5, dtype=dtype)
+    y = np.linspace(3, 4, 7, dtype=dtype)
+    grid = Grid(x=x, y=y)
+
+    match indexing:
+        case "xy":
+            expected_shape = (y.size, x.size)
+        case "ij":
+            expected_shape = (x.size, y.size)
+        case _ as unreachable:
+            raise AssertionError(unreachable)
+
+    mesh = Mesh.from_grid(grid, indexing=indexing)
+    assert mesh.dtype == grid.dtype
+    assert mesh.shape == expected_shape
+
+
+@pytest.mark.parametrize("dtype", ["float32", "float64"])
+@pytest.mark.parametrize("indexing", ["xy", "ij"])
+def test_interpolator_dunder_call(subtests, dtype, indexing):
+    x = np.geomspace(1, 2, 5, dtype=dtype)
+    y = np.linspace(3, 4, 7, dtype=dtype)
+    grid = Grid(x=x, y=y)
+    mesh = Mesh.from_grid(grid, indexing=indexing)
+
+    interpolator = Interpolator(grid=grid, target_mesh=mesh)
+    for method in ["nearest", "linear", "cubic"]:
+        with subtests.test(method=method):
+            res = interpolator(
+                # https://github.com/la-niche/lick/issues/246
+                mesh.x.T if indexing == "xy" else mesh.x,
+                method=method,
+            )
+            npt.assert_array_almost_equal_nulp(res, mesh.x)
+
+
+@pytest.mark.parametrize("dt1, dt2", permutations(["float32", "float64"]))
+def test_interpolator_dunder_call_mixed_dtype(subtests, dt1, dt2):
+    x = np.geomspace(1, 2, 5, dtype=dt1)
+    y = np.linspace(3, 4, 7, dtype=dt1)
+    grid = Grid(x=x, y=y)
+    mesh = Mesh.from_grid(grid, indexing="ij")
+
+    interpolator = Interpolator(grid=grid, target_mesh=mesh)
+    msg_template = (
+        f"Expected all inputs to match this interpolator's grid data type ({grid.dtype!s}). "
+        "Received vals.dtype={!s}, target_mesh.dtype={!s}"
+    )
+    with (
+        subtests.test(vals_dtype=dt2, mesh_dtype=dt1),
+        pytest.raises(TypeError, match=re.escape(msg_template.format(dt2, dt1))),
+    ):
+        interpolator(mesh.x.astype(dt2), method="nearest")
+
+    interpolator = Interpolator(grid=grid, target_mesh=mesh.astype(dt2))
+    with (
+        subtests.test(vals_dtype=dt1, mesh_dtype=dt2),
+        pytest.raises(TypeError, match=re.escape(msg_template.format(dt1, dt2))),
+    ):
+        interpolator(mesh.x, method="nearest")
