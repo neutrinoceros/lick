@@ -40,6 +40,10 @@ content-type = "text/markdown"
 Homepage = "https://github.com/la-niche/lick"
 
 [dependency-groups]
+covcheck = [
+    "coverage>=7.10",
+    "coverage[toml]>=7.10.0 ; python_full_version < '3.11'",
+]
 test = [
     "pytest>=9.0.0",
     "pytest-mpl>=0.16.1",
