@@ -47,12 +47,32 @@ jobs:
         prune-cache: false
         cache-suffix: ${{ matrix.install-args }}
 
-    - name: Build
+    - name: Build (Linux)
+      if: runner.os == 'Linux'
+      run: uv sync --no-editable --group test --group covcheck ${{ matrix.install-args }}
+
+    - name: Build (non Linux)
+      if: runner.os != 'Linux'
       run: uv sync --no-editable --group test ${{ matrix.install-args }}
 
-    - name: Test
-      shell: bash
-      run: uv run --no-sync pytest --color=yes -ra --maxfail=10 ${{ contains(matrix.install-args, 'lowest') && '-Wdefault' || '' }}
+    - name: Test (with coverage)
+      if: runner.os == 'Linux'
+      run: |
+        uv run --no-sync coverage run --parallel-mode -m \
+          pytest --color=yes -ra --maxfail=10 ${{ contains(matrix.install-args, 'lowest') && '-Wdefault' || '' }}
+
+    - name: Test (without coverage)
+      if: runner.os != 'Linux'
+      run: uv run --no-sync pytest --color=yes -ra --maxfail=10
+
+    - name: Upload coverage data
+      if: runner.os == 'Linux'
+      uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5.0.0
+      with:
+        path: .coverage.*
+        name: lick_coverage_data-${{ matrix.os }}-${{ matrix.python-version }}${{ matrix.install-args }}
+        if-no-files-found: error
+        include-hidden-files: true
 
   image-tests:
     name: Image tests
@@ -103,7 +123,43 @@ jobs:
         path: lick_pytest_mpl_new_baseline/*
         if-no-files-found: ignore
 
+  coverage:
+    name: Combine & check coverage
+    runs-on: ubuntu-latest
+    needs: unit-tests
 
+    steps:
+    - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+      with:
+        persist-credentials: false
+    - uses: astral-sh/setup-uv@85856786d1ce8acfbcc2f13a5f3fbd6b938f9f41 # v7.1.2
+      with:
+        python-version: '3.13'
+        activate-environment: true
+        enable-cache: true
+        prune-cache: false
+        cache-suffix: covcheck
+    - run: uv sync --group covcheck
+
+    - uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # v6.0.0
+      with:
+        pattern: lick_coverage_data-*
+        merge-multiple: true
+        if-no-files-found: error
+
+    - name: Check coverage
+      run: |
+        coverage combine
+        coverage html --skip-covered --skip-empty
+        coverage report --skip-covered --format=markdown >> "$GITHUB_STEP_SUMMARY"
+        coverage report --fail-under=100
+
+    - name: Upload HTML report if check failed.
+      uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5.0.0
+      with:
+        name: lick_coverage_report
+        path: htmlcov
+      if: ${{ failure() }}
 
   typecheck:
     runs-on: ubuntu-latest
