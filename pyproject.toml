@@ -93,6 +93,24 @@ filterwarnings = [
     'ignore:datetime\.datetime\.utcfromtimestamp\(\) is deprecated:DeprecationWarning', # https://github.com/dateutil/dateutil/pull/1285
 ]
 
+[tool.coverage.run]
+branch = true
+source = [
+    "src",
+    "tests",
+]
+
+[tool.coverage.report]
+show_missing = true
+skip_covered = false
+
+# use exclude_also to *extend* the default exclude_lines,
+# and allow purely defensive code patterns
+exclude_also = [
+    "^\\s*raise (Assertion|Runtime|NotImplemented)Error\\b",
+    "^\\s*case _ as unreachable:",
+]
+
 [tool.uv]
 no-build-package = [
     "numpy",
