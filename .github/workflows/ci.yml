@@ -145,7 +145,6 @@ jobs:
       with:
         pattern: lick_coverage_data-*
         merge-multiple: true
-        if-no-files-found: error
 
     - name: Check coverage
       run: |
