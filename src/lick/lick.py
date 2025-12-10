@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 import warnings
 from typing import TYPE_CHECKING, Literal, TypeAlias, cast
 
@@ -308,31 +307,3 @@ def lick_box_plot(
     ax.set_xlim(xmin, xmax)
     ax.set_ylim(ymin, ymax)
     # print("streamplot")
-
-
-if __name__ == "__main__":
-    import matplotlib.pyplot as plt
-
-    cmap = "inferno"
-    fig, ax = plt.subplots()
-    x = np.geomspace(0.1, 10, 128)
-    y = np.geomspace(0.1, 5, 128)
-    a, b = np.meshgrid(x, y)
-    v1 = np.cos(a)
-    v2 = np.sin(b)
-    field = v1**2 + v2**2
-    lick_box_plot(
-        fig,
-        ax,
-        x,
-        y,
-        v1,
-        v2,
-        field,
-        cmap=cmap,
-        kernel_length=64,
-        stream_density=0.5,
-        niter_lic=5,
-        size_interpolated=256,
-    )
-    plt.show()
