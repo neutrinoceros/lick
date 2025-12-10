@@ -1,4 +1,3 @@
-import warnings
 from typing import TYPE_CHECKING, Literal, TypeAlias, cast
 
 import numpy as np
@@ -217,7 +216,6 @@ def lick_box_plot(
     kernel_length: int = 101,
     log: bool = False,
     cmap=None,
-    nbin: int | None = None,
     color_stream: str = "w",
     cmap_stream=None,
     light_source: bool = True,
@@ -227,13 +225,6 @@ def lick_box_plot(
 ):
     from mpl_toolkits.axes_grid1 import make_axes_locatable
 
-    if nbin is not None:
-        warnings.warn(
-            "the nbin keyword argument has no effect "
-            "and will be removed in a future version",
-            category=DeprecationWarning,
-            stacklevel=2,
-        )
     Xi, Yi, v1i, v2i, fieldi, licv = lick_box(
         x,
         y,
