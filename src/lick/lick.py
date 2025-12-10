@@ -6,7 +6,7 @@ import rlic
 from interpn import interpn
 
 from lick._interpolate import Interval
-from lick._typing import FArray2D, FArrayND
+from lick._typing import F, FArray2D, FArrayND
 
 if TYPE_CHECKING:
     from matplotlib.axes import Axes
@@ -114,18 +114,13 @@ def interpol(
 
 
 def lick(
-    v1: np.ndarray,
-    v2: np.ndarray,
+    v1: FArray2D[F],
+    v2: FArray2D[F],
     *,
     niter_lic: int = 5,
     kernel_length: int = 101,
     light_source: bool = True,
-):
-    if v1.ndim != 2:
-        raise ValueError(f"Expected a 2D array for v1, got v1 with shape {v1.shape}")
-    if v2.ndim != 2:
-        raise ValueError(f"Expected a 2D array for v2, got v2 with shape {v2.shape}")
-
+) -> FArray2D[F]:
     rng = np.random.default_rng(seed=0)
     texture = rng.normal(0.5, 0.001**0.5, v1.shape).astype(v1.dtype, copy=False)
     kernel = np.sin(np.arange(kernel_length, dtype=v1.dtype) * np.pi / kernel_length)
