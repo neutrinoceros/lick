@@ -139,11 +139,11 @@ def lick(
 
 
 def lick_box(
-    x: FArrayND,
-    y: FArrayND,
-    v1: FArray2D,
-    v2: FArray2D,
-    field: FArray2D,
+    x: FArrayND[F],
+    y: FArrayND[F],
+    v1: FArray2D[F],
+    v2: FArray2D[F],
+    field: FArray2D[F],
     *,
     size_interpolated: int = 800,
     method: Method = "nearest",
@@ -155,7 +155,9 @@ def lick_box(
     niter_lic: int = 5,
     kernel_length: int = 101,
     light_source: bool = True,
-):
+) -> tuple[
+    FArray2D[F], FArray2D[F], FArray2D[F], FArray2D[F], FArray2D[F], FArray2D[F]
+]:
     yy: FArray2D
     xx: FArray2D
     if x.ndim == y.ndim == 2:
@@ -197,11 +199,11 @@ def lick_box(
 def lick_box_plot(
     fig: "Figure",
     ax: "Axes",
-    x: FArrayND,
-    y: FArrayND,
-    v1: FArray2D,
-    v2: FArray2D,
-    field: FArray2D,
+    x: FArrayND[F],
+    y: FArrayND[F],
+    v1: FArray2D[F],
+    v2: FArray2D[F],
+    field: FArray2D[F],
     *,
     vmin: float | None = None,
     vmax: float | None = None,
@@ -216,13 +218,13 @@ def lick_box_plot(
     kernel_length: int = 101,
     log: bool = False,
     cmap=None,
-    color_stream: str = "w",
+    color_stream: str = "white",
     cmap_stream=None,
     light_source: bool = True,
     stream_density: float = 0,
     alpha_transparency: bool = True,
     alpha: float = 0.3,
-):
+) -> None:
     from mpl_toolkits.axes_grid1 import make_axes_locatable
 
     Xi, Yi, v1i, v2i, fieldi, licv = lick_box(
