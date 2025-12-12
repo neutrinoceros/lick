@@ -6,6 +6,7 @@ import numpy.testing as npt
 import pytest
 
 from lick._interpolate import Grid, Interpolator, Interval, Mesh
+from lick.lick import interpol
 
 f64 = np.float64
 
@@ -263,3 +264,35 @@ def test_interpolator_dunder_call_mixed_dtype(subtests, dt1, dt2):
         pytest.raises(TypeError, match=re.escape(msg_template.format(dt1, dt2))),
     ):
         interpolator(mesh.x, method="nearest")
+
+
+@pytest.mark.parametrize("dtype", ["float32", "float64"])
+@pytest.mark.parametrize("indexing", ["ij", "xy"])
+def test_variable_precision_interpol_inputs(dtype, indexing, subtests):
+    prng = np.random.default_rng(0)
+    shape = (4, 3)
+    size = np.prod(shape)
+
+    xv = np.linspace(0, 10, shape[0], dtype=dtype)
+    yv = np.linspace(0, 20, shape[1], dtype=dtype)
+    v1, v2, field = [prng.random(size, dtype=dtype).reshape(shape) for _ in range(3)]
+    xx, yy = np.meshgrid(xv, yv, indexing=indexing)
+    xo, yo, v1o, v2o, fieldo = interpol(
+        xx,
+        yy,
+        field,
+        v1,
+        v2,
+        xmin=None,
+        xmax=10.0,
+        ymin=1,
+        ymax=None,
+        size_interpolated=3,
+    )
+
+    with subtests.test():
+        assert yo.dtype == xo.dtype
+    with subtests.test():
+        assert v2o.dtype == v1o.dtype
+    with subtests.test():
+        assert fieldo.dtype == v2o.dtype
