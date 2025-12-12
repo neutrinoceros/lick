@@ -3,7 +3,7 @@ from typing import TYPE_CHECKING, cast
 import numpy as np
 import rlic
 
-from lick._interpolate import Grid, Interpolator, Interval, Mesh, Method
+from lick._interpolation import Grid, Interpolator, Interval, Mesh, Method
 from lick._typing import F, FArray2D, FArrayND
 
 if TYPE_CHECKING:
