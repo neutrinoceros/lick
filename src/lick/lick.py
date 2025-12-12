@@ -4,7 +4,7 @@ import numpy as np
 import rlic
 
 from lick._interpolation import Grid, Interpolator, Interval, Mesh, Method
-from lick._typing import F, FArray2D, FArrayND
+from lick._typing import F, FArray1D, FArray2D, FArrayND
 
 if TYPE_CHECKING:
     from matplotlib.axes import Axes
@@ -50,11 +50,11 @@ def _equalize_hist(image):
 
 
 def interpol(
-    xx: FArray2D,
-    yy: FArray2D,
-    v1: FArray2D,
-    v2: FArray2D,
-    field: FArray2D,
+    xx: FArray2D[F],
+    yy: FArray2D[F],
+    v1: FArray2D[F],
+    v2: FArray2D[F],
+    field: FArray2D[F],
     *,
     method: Method = "nearest",
     method_background: Method = "nearest",
@@ -63,7 +63,11 @@ def interpol(
     ymin: float | None = None,
     ymax: float | None = None,
     size_interpolated: int = 800,
-):
+) -> tuple[FArray1D[F], FArray1D[F], FArray2D[F], FArray2D[F], FArray2D[F]]:
+    if len(all_dtypes := {_.dtype for _ in (xx, yy, v1, v2, field)}) > 1:
+        raise TypeError(f"Received inputs with mixed datatypes ({all_dtypes})")
+    dt = cast(F, xx.dtype)
+
     if np.ptp(xx[:, 0]) == 0.0:
         # input indexing = "xy"
         x = xx[0, :]
@@ -76,8 +80,7 @@ def interpol(
         x = xx[:, 0]
         y = yy[0, :]
 
-    dt = np.dtype(f"f{min(arr.dtype.itemsize for arr in (v1, v2, field))}")
-    inputs_grid = Grid(x=x.astype(dt), y=y.astype(dt))
+    inputs_grid = Grid(x=x, y=y)
 
     target_grid = Grid.from_intervals(
         x=Interval(
@@ -89,7 +92,7 @@ def interpol(
             max=float(yy.max()),
         ).with_overrides(min=ymin, max=ymax),
         small_dim_npoints=size_interpolated,
-        dtype=dt,  # type: ignore[type-var]
+        dtype=dt,
     )
 
     interpolate = Interpolator(
@@ -113,6 +116,8 @@ def lick(
     kernel_length: int = 101,
     light_source: bool = True,
 ) -> FArray2D[F]:
+    if len(all_dtypes := {_.dtype for _ in (v1, v2)}) > 1:
+        raise TypeError(f"Received inputs with mixed datatypes ({all_dtypes})")
     rng = np.random.default_rng(seed=0)
     texture = rng.normal(0.5, 0.001**0.5, v1.shape).astype(v1.dtype, copy=False)
     kernel = np.sin(np.arange(kernel_length, dtype=v1.dtype) * np.pi / kernel_length)
@@ -151,6 +156,9 @@ def lick_box(
 ) -> tuple[
     FArray2D[F], FArray2D[F], FArray2D[F], FArray2D[F], FArray2D[F], FArray2D[F]
 ]:
+    if len(all_dtypes := {_.dtype for _ in (x, y, v1, v2, field)}) > 1:
+        raise TypeError(f"Received inputs with mixed datatypes ({all_dtypes})")
+
     yy: FArray2D
     xx: FArray2D
     if x.ndim == y.ndim == 2:
@@ -218,6 +226,9 @@ def lick_box_plot(
     alpha_transparency: bool = True,
     alpha: float = 0.3,
 ) -> None:
+    if len(all_dtypes := {_.dtype for _ in (x, y, v1, v2, field)}) > 1:
+        raise TypeError(f"Received inputs with mixed datatypes ({all_dtypes})")
+
     from mpl_toolkits.axes_grid1 import make_axes_locatable
 
     Xi, Yi, v1i, v2i, fieldi, licv = lick_box(
