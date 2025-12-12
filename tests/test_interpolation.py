@@ -5,7 +5,7 @@ import numpy as np
 import numpy.testing as npt
 import pytest
 
-from lick._interpolate import Grid, Interpolator, Interval, Mesh
+from lick._interpolation import Grid, Interpolator, Interval, Mesh
 from lick.lick import interpol
 
 f64 = np.float64
