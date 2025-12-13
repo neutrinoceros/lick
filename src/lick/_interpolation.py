@@ -55,6 +55,29 @@ class Interval:
 
 
 @final
+@dataclass(slots=True, frozen=True)
+class Monotonic(Generic[F]):
+    base: FArray1D[F]
+
+    def __post_init__(self):
+        sorted_base = np.sort(self.base)
+        if np.all(self.base == sorted_base) or np.all(self.base[::-1] == sorted_base):
+            return
+        raise ValueError(
+            "Expected a monotonic base array (either increasing or decreasing order)"
+        )
+
+    def is_decreasing(self) -> bool:
+        return bool(self.base[-1] < self.base[0])
+
+    def as_increasing_array(self) -> FArray1D[F]:
+        if self.is_decreasing():
+            return self.base[::-1]
+        else:
+            return self.base
+
+
+@final
 @dataclass(kw_only=True, slots=True, frozen=True)
 class Grid(Generic[F]):
     x: FArray1D[F]
@@ -92,6 +115,13 @@ class Grid(Generic[F]):
         return Grid(
             x=x.as_evenly_spaced_array(size_x, dtype=dtype),
             y=y.as_evenly_spaced_array(size_y, dtype=dtype),
+        )
+
+    @classmethod
+    def from_unsanitized_arrays(cls, x: FArray1D[F], y: FArray1D[F]) -> "Grid[F]":
+        return Grid(
+            x=Monotonic(x).as_increasing_array(),
+            y=Monotonic(y).as_increasing_array(),
         )
 
     @property
