@@ -79,8 +79,7 @@ def interpol(
         x = xx[:, 0]
         y = yy[0, :]
 
-    inputs_grid = Grid(x=x, y=y)
-
+    inputs_grid = Grid.from_unsanitized_arrays(x=x, y=y)
     target_grid = Grid.from_intervals(
         x=Interval(
             min=float(xx.min()),
