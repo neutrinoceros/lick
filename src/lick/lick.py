@@ -66,7 +66,6 @@ def interpol(
 ) -> tuple[FArray1D[F], FArray1D[F], FArray2D[F], FArray2D[F], FArray2D[F]]:
     if len(all_dtypes := {_.dtype for _ in (xx, yy, v1, v2, field)}) > 1:
         raise TypeError(f"Received inputs with mixed datatypes ({all_dtypes})")
-    dt = cast(F, xx.dtype)
 
     if np.ptp(xx[:, 0]) == 0.0:
         # input indexing = "xy"
@@ -92,7 +91,7 @@ def interpol(
             max=float(yy.max()),
         ).with_overrides(min=ymin, max=ymax),
         small_dim_npoints=size_interpolated,
-        dtype=dt,
+        dtype=cast(F, xx.dtype),
     )
 
     interpolate = Interpolator(
@@ -102,9 +101,9 @@ def interpol(
     return (
         target_grid.x,
         target_grid.y,
-        interpolate(v1.astype(dt), method=method),
-        interpolate(v2.astype(dt), method=method),
-        interpolate(field.astype(dt), method=method_background),
+        interpolate(v1, method=method),
+        interpolate(v2, method=method),
+        interpolate(field, method=method_background),
     )
 
 
