@@ -291,8 +291,8 @@ def test_variable_precision_interpol_inputs(dtype, indexing, subtests):
     )
 
     with subtests.test():
-        assert yo.dtype == xo.dtype
+        assert yo.dtype == xo.dtype == dtype
     with subtests.test():
-        assert v2o.dtype == v1o.dtype
+        assert v2o.dtype == v1o.dtype == dtype
     with subtests.test():
-        assert fieldo.dtype == v2o.dtype
+        assert fieldo.dtype == v2o.dtype == dtype
