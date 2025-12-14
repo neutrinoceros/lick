@@ -5,7 +5,7 @@ import numpy as np
 import numpy.testing as npt
 import pytest
 
-from lick._interpolation import Grid, Interpolator, Interval, Mesh, Monotonic
+from lick._interpolation import Grid, Interpolator, Interval, Mesh
 from lick.lick import interpol
 
 f64 = np.float64
@@ -98,35 +98,6 @@ def test_interval_as_evenly_spaced_array(interval, size, dtype):
     assert a.dtype == dtype
     assert a.shape == (size,)
     npt.assert_almost_equal(np.diff(a, 2), 0.0, decimal=14 if dtype == "float64" else 6)
-
-
-def test_monotonic_invalid_array():
-    array = np.array([1, 2, 4, 3], dtype="float32")
-    with pytest.raises(
-        ValueError,
-        match=(
-            r"^Expected a monotonic base array "
-            r"\(either increasing or decreasing order\)$"
-        ),
-    ):
-        Monotonic(array)
-
-
-def test_monotonic_is_decreasing(subtests):
-    array = np.arange(5.0, dtype="float32")
-    with subtests.test("direct"):
-        assert not Monotonic(array).is_decreasing()
-    with subtests.test("reversed"):
-        assert Monotonic(array[::-1]).is_decreasing()
-
-
-def test_monotonic_as_inreasing_array(subtests):
-    array = np.arange(5.0, dtype="float32")[::-1]
-    ref = Monotonic(array)
-    with subtests.test("direct"):
-        assert ref.is_decreasing()
-    with subtests.test("reversed"):
-        assert not Monotonic(ref.as_increasing_array()).is_decreasing()
 
 
 @pytest.mark.parametrize("dtx, dty", permutations(["float32", "float64"]))
@@ -258,14 +229,10 @@ def test_interpolator_dunder_call(subtests, dtype, indexing):
     grid = Grid(x=x, y=y)
     mesh = Mesh.from_grid(grid, indexing=indexing)
 
-    interpolator = Interpolator(grid=grid, target_mesh=mesh)
+    interpolator = Interpolator(input_mesh=mesh, target_mesh=mesh)
     for method in ["nearest", "linear", "cubic"]:
         with subtests.test(method=method):
-            res = interpolator(
-                # https://github.com/la-niche/lick/issues/246
-                mesh.x.T if indexing == "xy" else mesh.x,
-                method=method,
-            )
+            res = interpolator(mesh.x, method=method)
             npt.assert_array_almost_equal_nulp(res, mesh.x)
 
 
@@ -275,24 +242,33 @@ def test_interpolator_dunder_call_mixed_dtype(subtests, dt1, dt2):
     y = np.linspace(3, 4, 7, dtype=dt1)
     grid = Grid(x=x, y=y)
     mesh = Mesh.from_grid(grid, indexing="ij")
+    shape = mesh.shape
 
-    interpolator = Interpolator(grid=grid, target_mesh=mesh)
-    msg_template = (
-        f"Expected all inputs to match this interpolator's grid data type ({grid.dtype!s}). "
-        "Received vals.dtype={!s}, target_mesh.dtype={!s}"
-    )
+    interpolator = Interpolator(input_mesh=mesh, target_mesh=mesh)
     with (
-        subtests.test(vals_dtype=dt2, mesh_dtype=dt1),
-        pytest.raises(TypeError, match=re.escape(msg_template.format(dt2, dt1))),
+        subtests.test(vals_dtype=dt2),
+        pytest.raises(
+            TypeError,
+            match=re.escape(
+                f"Expected values to match the input mesh's data type ({mesh.dtype}) "
+                f"and shape {mesh.shape}. "
+                f"Received values with dtype={dt2!s}, shape={shape}"
+            ),
+        ),
     ):
         interpolator(mesh.x.astype(dt2), method="nearest")
 
-    interpolator = Interpolator(grid=grid, target_mesh=mesh.astype(dt2))
     with (
-        subtests.test(vals_dtype=dt1, mesh_dtype=dt2),
-        pytest.raises(TypeError, match=re.escape(msg_template.format(dt1, dt2))),
+        subtests.test(vals_dtype=dt1),
+        pytest.raises(
+            TypeError,
+            match=(
+                r"input and target meshes must use the same data type\. "
+                rf"Got input_mesh.dtype={dt1!s}, target_mesh\.dtype={dt2!s}"
+            ),
+        ),
     ):
-        interpolator(mesh.x, method="nearest")
+        Interpolator(input_mesh=mesh, target_mesh=mesh.astype(dt2))
 
 
 @pytest.mark.parametrize("dtype", ["float32", "float64"])
@@ -302,8 +278,12 @@ def test_variable_precision_interpol_inputs(dtype, indexing, subtests):
     shape = (4, 3)
     size = np.prod(shape)
 
-    xv = np.linspace(0, 10, shape[0], dtype=dtype)
-    yv = np.linspace(0, 20, shape[1], dtype=dtype)
+    if indexing == "ij":
+        xv = np.linspace(0, 10, shape[0], dtype=dtype)
+        yv = np.linspace(0, 20, shape[1], dtype=dtype)
+    else:
+        xv = np.linspace(0, 10, shape[1], dtype=dtype)
+        yv = np.linspace(0, 20, shape[0], dtype=dtype)
     v1, v2, field = [prng.random(size, dtype=dtype).reshape(shape) for _ in range(3)]
     xx, yy = np.meshgrid(xv, yv, indexing=indexing)
     xo, yo, v1o, v2o, fieldo = interpol(
@@ -325,34 +305,3 @@ def test_variable_precision_interpol_inputs(dtype, indexing, subtests):
         assert v2o.dtype == v1o.dtype == dtype
     with subtests.test():
         assert fieldo.dtype == v2o.dtype == dtype
-
-
-def test_decreasing_coordinates(subtests):
-    xv = np.geomspace(2.0, 20.0, 8)
-    yv = np.geomspace(1.0, 10.0, 5)
-    prng = np.random.default_rng(0)
-    shape = (xv.size, yv.size)
-    size = np.prod(shape)
-
-    v1, v2, field = [prng.random(size, dtype=xv.dtype).reshape(shape) for _ in range(3)]
-
-    xx0, yy0 = np.meshgrid(xv, yv)
-    ref = interpol(xx0, yy0, field, v1, v2, size_interpolated=10)
-
-    xx1, yy1 = np.meshgrid(xv[::-1], yv)
-    new_res = interpol(xx1, yy1, field, v1, v2, size_interpolated=10)
-    for arr, ref_arr in zip(new_res, ref, strict=True):
-        with subtests.test(flipped="x"):
-            npt.assert_array_equal(arr, ref_arr)
-
-    xx2, yy2 = np.meshgrid(xv, yv[::-1])
-    new_res = interpol(xx2, yy2, field, v1, v2, size_interpolated=10)
-    for arr, ref_arr in zip(new_res, ref, strict=True):
-        with subtests.test(flipped="x"):
-            npt.assert_array_equal(arr, ref_arr)
-
-    xx3, yy3 = np.meshgrid(xv[::-1], yv[::-1])
-    new_res = interpol(xx3, yy3, field, v1, v2, size_interpolated=10)
-    for arr, ref_arr in zip(new_res, ref, strict=True):
-        with subtests.test(flipped="xy"):
-            npt.assert_array_equal(arr, ref_arr)

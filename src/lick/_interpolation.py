@@ -11,7 +11,6 @@ from math import isfinite
 from typing import Generic, Literal, TypeAlias, final
 
 import numpy as np
-from interpn import interpn
 
 from lick._typing import F, FArray1D, FArray2D
 
@@ -55,29 +54,6 @@ class Interval:
 
 
 @final
-@dataclass(slots=True, frozen=True)
-class Monotonic(Generic[F]):
-    base: FArray1D[F]
-
-    def __post_init__(self):
-        sorted_base = np.sort(self.base)
-        if np.all(self.base == sorted_base) or np.all(self.base[::-1] == sorted_base):
-            return
-        raise ValueError(
-            "Expected a monotonic base array (either increasing or decreasing order)"
-        )
-
-    def is_decreasing(self) -> bool:
-        return bool(self.base[-1] < self.base[0])
-
-    def as_increasing_array(self) -> FArray1D[F]:
-        if self.is_decreasing():
-            return self.base[::-1]
-        else:
-            return self.base
-
-
-@final
 @dataclass(kw_only=True, slots=True, frozen=True)
 class Grid(Generic[F]):
     x: FArray1D[F]
@@ -115,13 +91,6 @@ class Grid(Generic[F]):
         return Grid(
             x=x.as_evenly_spaced_array(size_x, dtype=dtype),
             y=y.as_evenly_spaced_array(size_y, dtype=dtype),
-        )
-
-    @classmethod
-    def from_unsanitized_arrays(cls, x: FArray1D[F], y: FArray1D[F]) -> "Grid[F]":
-        return Grid(
-            x=Monotonic(x).as_increasing_array(),
-            y=Monotonic(y).as_increasing_array(),
         )
 
     @property
@@ -169,8 +138,16 @@ class Mesh(Generic[F]):
 @final
 @dataclass(kw_only=True, slots=True, frozen=True)
 class Interpolator(Generic[F]):
-    grid: Grid[F]
+    input_mesh: Mesh[F]
     target_mesh: Mesh[F]
+
+    def __post_init__(self):
+        if self.target_mesh.dtype == self.input_mesh.dtype:
+            return
+        raise TypeError(
+            "input and target meshes must use the same data type. "
+            f"Got input_mesh.dtype={self.input_mesh.dtype!s}, target_mesh.dtype={self.target_mesh.dtype!s}"
+        )
 
     def __call__(
         self,
@@ -179,21 +156,23 @@ class Interpolator(Generic[F]):
         *,
         method: Method,
     ) -> FArray2D[F]:
-        if any(o.dtype != self.grid.dtype for o in (vals, self.target_mesh)):
+        if vals.dtype != self.input_mesh.dtype or vals.shape != self.input_mesh.shape:
             raise TypeError(
-                f"Expected all inputs to match this interpolator's grid data type ({self.grid.dtype}). "
-                f"Received {vals.dtype=!s}, target_mesh.dtype={self.target_mesh.dtype!s}"
+                f"Expected values to match the input mesh's data type ({self.input_mesh.dtype}) "
+                f"and shape {self.input_mesh.shape}. "
+                f"Received values with dtype={vals.dtype!s}, shape={vals.shape}"
             )
+        from scipy.interpolate import griddata
 
-        # https://github.com/la-niche/lick/issues/246
-        # if vals.shape != target_mesh.shape:
-        #    raise TypeError("Mismatched shapes between inputs. "
-        #    f"Received {vals.shape=}, {target_mesh.shape=}"
-        # )
-
-        return interpn(
-            grids=(self.grid.x, self.grid.y),
-            obs=(self.target_mesh.x, self.target_mesh.y),
-            vals=vals,
+        return griddata(  # type: ignore[no-any-return]
+            points=(
+                self.input_mesh.x.flat,
+                self.input_mesh.y.flat,
+            ),
+            values=vals.flat,
+            xi=(
+                self.target_mesh.x,
+                self.target_mesh.y,
+            ),
             method=method,
-        )
+        ).astype(vals.dtype)
