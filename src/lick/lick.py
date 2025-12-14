@@ -67,19 +67,6 @@ def interpol(
     if len(all_dtypes := {_.dtype for _ in (xx, yy, v1, v2, field)}) > 1:
         raise TypeError(f"Received inputs with mixed datatypes ({all_dtypes})")
 
-    if np.ptp(xx[:, 0]) == 0.0:
-        # input indexing = "xy"
-        x = xx[0, :]
-        y = yy[:, 0]
-
-        # https://github.com/la-niche/lick/issues/246
-        v1, v2, field = [a.T for a in (v1, v2, field)]
-    else:
-        # input indexing = "ij"
-        x = xx[:, 0]
-        y = yy[0, :]
-
-    inputs_grid = Grid.from_unsanitized_arrays(x=x, y=y)
     target_grid = Grid.from_intervals(
         x=Interval(
             min=float(xx.min()),
@@ -94,7 +81,8 @@ def interpol(
     )
 
     interpolate = Interpolator(
-        grid=inputs_grid, target_mesh=Mesh.from_grid(target_grid, indexing="xy")
+        input_mesh=Mesh(x=xx, y=yy),
+        target_mesh=Mesh.from_grid(target_grid, indexing="xy"),
     )
 
     return (
