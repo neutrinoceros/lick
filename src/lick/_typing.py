@@ -1,6 +1,6 @@
 __all__ = ["F", "FArray1D", "FArray2D", "FArrayND"]
 
-from typing import TypeAlias, TypeVar
+from typing import Literal, TypeAlias, TypedDict, TypeVar
 
 import numpy as np
 
@@ -11,3 +11,11 @@ F = TypeVar("F", f32, f64)
 FArray1D: TypeAlias = np.ndarray[tuple[int], np.dtype[F]]
 FArray2D: TypeAlias = np.ndarray[tuple[int, int], np.dtype[F]]
 FArrayND: TypeAlias = np.ndarray[tuple[int, ...], np.dtype[F]]
+
+
+class AlphaDict(TypedDict):
+    alpha: float
+
+
+class MixMulDict(TypedDict):
+    mix: Literal["mul"]
