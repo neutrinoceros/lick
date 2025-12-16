@@ -236,29 +236,21 @@ def lick_box_plot(
     )
 
     new_fieldi = np.log10(fieldi) if log else fieldi
-    vmin = new_fieldi.min() if vmin is None else vmin
-    vmax = new_fieldi.max() if vmax is None else vmax
-
+    im_kwargs = {
+        "cmap": cmap,
+        "shading": "nearest",
+        "vmin": new_fieldi.min() if vmin is None else vmin,
+        "vmax": new_fieldi.max() if vmax is None else vmax,
+    }
     if alpha_transparency:
-        im = ax.pcolormesh(
-            Xi,
-            Yi,
-            new_fieldi,
-            cmap=cmap,
-            shading="nearest",
-            vmin=vmin,
-            vmax=vmax,
-            rasterized=True,
-        )
+        im = ax.pcolormesh(Xi, Yi, new_fieldi, rasterized=True, **im_kwargs)
         ax.pcolormesh(
             Xi, Yi, licv, cmap="gray", shading="nearest", alpha=alpha, rasterized=True
         )
     else:
         datalicv = licv * fieldi
         datalicv = np.log10(datalicv) if log else datalicv
-        im = ax.pcolormesh(
-            Xi, Yi, datalicv, cmap=cmap, shading="nearest", vmin=vmin, vmax=vmax
-        )
+        im = ax.pcolormesh(Xi, Yi, datalicv, **im_kwargs)
 
     # print("pcolormesh")
     divider = make_axes_locatable(ax)
