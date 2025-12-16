@@ -235,12 +235,6 @@ def lick_box_plot(
         light_source=light_source,
     )
 
-    if log:
-        if not alpha_transparency:
-            datalicv = np.log10(licv * fieldi)
-    elif not alpha_transparency:
-        datalicv = licv * fieldi
-
     new_fieldi = np.log10(fieldi) if log else fieldi
     vmin = new_fieldi.min() if vmin is None else vmin
     vmax = new_fieldi.max() if vmax is None else vmax
@@ -260,6 +254,8 @@ def lick_box_plot(
             Xi, Yi, licv, cmap="gray", shading="nearest", alpha=alpha, rasterized=True
         )
     else:
+        datalicv = licv * fieldi
+        datalicv = np.log10(datalicv) if log else datalicv
         im = ax.pcolormesh(
             Xi, Yi, datalicv, cmap=cmap, shading="nearest", vmin=vmin, vmax=vmax
         )
