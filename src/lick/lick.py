@@ -259,10 +259,9 @@ def lick_box_plot(
         datalicv = np.log10(datalicv) if log else datalicv
         im = pcolormesh(datalicv, **im_kwargs)
 
-    # print("pcolormesh")
     divider = make_axes_locatable(ax)
     cax = divider.append_axes("right", size="5%", pad=0.05)
-    fig.colorbar(im, cax=cax, orientation="vertical")  # , format='%.0e')
+    fig.colorbar(im, cax=cax, orientation="vertical")
     if stream_density > 0:
         ax.streamplot(
             Xi,
@@ -277,7 +276,6 @@ def lick_box_plot(
         )
     ax.set_xlim(xmin, xmax)
     ax.set_ylim(ymin, ymax)
-    # print("streamplot")
 
     # return the output straight from lick_box
     return lbr
