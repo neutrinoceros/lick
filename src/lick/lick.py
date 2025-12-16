@@ -1,11 +1,17 @@
+import sys
 from functools import partial
-from typing import TYPE_CHECKING, TypeAlias, cast
+from typing import TYPE_CHECKING, Generic, cast
 
 import numpy as np
 import rlic
 
 from lick._interpolation import Grid, Interpolator, Interval, Mesh, Method
 from lick._typing import F, FArray1D, FArray2D, FArrayND
+
+if sys.version_info >= (3, 11):
+    from typing import NamedTuple
+else:
+    from typing_extensions import NamedTuple
 
 if TYPE_CHECKING:
     from matplotlib.axes import Axes
@@ -50,9 +56,12 @@ def _equalize_hist(image):
     return out.astype(image.dtype, copy=False)
 
 
-InterpolationResults: TypeAlias = tuple[
-    FArray1D[F], FArray1D[F], FArray2D[F], FArray2D[F], FArray2D[F]
-]
+class InterpolationResults(NamedTuple, Generic[F]):
+    x_ticks: FArray1D[F]
+    y_ticks: FArray1D[F]
+    v1: FArray2D[F]
+    v2: FArray2D[F]
+    field: FArray2D[F]
 
 
 def interpol(
@@ -91,7 +100,7 @@ def interpol(
         target_mesh=Mesh.from_grid(target_grid, indexing="xy"),
     )
 
-    return (
+    return InterpolationResults(
         target_grid.x,
         target_grid.y,
         interpolate(v1, method=method),
@@ -128,9 +137,13 @@ def lick(
     return image
 
 
-LickBoxResults: TypeAlias = tuple[
-    FArray2D[F], FArray2D[F], FArray2D[F], FArray2D[F], FArray2D[F], FArray2D[F]
-]
+class LickBoxResults(NamedTuple, Generic[F]):
+    x_grid: FArray2D[F]
+    y_grid: FArray2D[F]
+    v1: FArray2D[F]
+    v2: FArray2D[F]
+    field: FArray2D[F]
+    licv: FArray2D[F]
 
 
 def lick_box(
@@ -167,7 +180,7 @@ def lick_box(
             f"and 'y' with shape {y.shape}. "
             "Expected them to be both 1D or 2D arrays with identical shapes"
         )
-    xi, yi, v1i, v2i, fieldi = interpol(
+    ir = interpol(
         xx,
         yy,
         v1,
@@ -181,15 +194,15 @@ def lick_box(
         ymax=ymax,
         size_interpolated=size_interpolated,
     )
-    Xi, Yi = np.meshgrid(xi, yi)
+    Xi, Yi = np.meshgrid(ir.x_ticks, ir.y_ticks)
     licv = lick(
-        v1i,
-        v2i,
+        ir.v1,
+        ir.v2,
         niter_lic=niter_lic,
         kernel_length=kernel_length,
         light_source=light_source,
     )
-    return (Xi, Yi, v1i, v2i, fieldi, licv)
+    return LickBoxResults(Xi, Yi, ir.v1, ir.v2, ir.field, licv)
 
 
 def lick_box_plot(
@@ -226,7 +239,7 @@ def lick_box_plot(
 
     from mpl_toolkits.axes_grid1 import make_axes_locatable
 
-    lbr = Xi, Yi, v1i, v2i, fieldi, licv = lick_box(
+    lbr = lick_box(
         x,
         y,
         v1,
@@ -244,18 +257,20 @@ def lick_box_plot(
         light_source=light_source,
     )
 
-    new_fieldi = np.log10(fieldi) if log else fieldi
+    new_field = np.log10(lbr.field) if log else lbr.field
     im_kwargs = {
         "cmap": cmap,
-        "vmin": new_fieldi.min() if vmin is None else vmin,
-        "vmax": new_fieldi.max() if vmax is None else vmax,
+        "vmin": new_field.min() if vmin is None else vmin,
+        "vmax": new_field.max() if vmax is None else vmax,
     }
-    pcolormesh = partial(ax.pcolormesh, Xi, Yi, rasterized=True, shading="nearest")
+    pcolormesh = partial(
+        ax.pcolormesh, lbr.x_grid, lbr.y_grid, rasterized=True, shading="nearest"
+    )
     if alpha_transparency:
-        im = pcolormesh(new_fieldi, **im_kwargs)
-        pcolormesh(licv, cmap="gray", alpha=alpha)
+        im = pcolormesh(new_field, **im_kwargs)
+        pcolormesh(lbr.licv, cmap="gray", alpha=alpha)
     else:
-        datalicv = licv * fieldi
+        datalicv = lbr.licv * lbr.field
         datalicv = np.log10(datalicv) if log else datalicv
         im = pcolormesh(datalicv, **im_kwargs)
 
@@ -264,10 +279,10 @@ def lick_box_plot(
     fig.colorbar(im, cax=cax, orientation="vertical")
     if stream_density > 0:
         ax.streamplot(
-            Xi,
-            Yi,
-            v1i,
-            v2i,
+            lbr.x_grid,
+            lbr.y_grid,
+            lbr.v1,
+            lbr.v2,
             density=stream_density,
             arrowstyle="->",
             linewidth=0.8,
