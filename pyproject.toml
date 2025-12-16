@@ -118,6 +118,7 @@ no-build-package = [
     "pillow",
     "contourpy",
     "kiwisolver",
+    "scipy",
 
     # all of the following are from pytest-mpl (directly or not)
     # these constraints should (mostly) become obsolete with https://github.com/matplotlib/pytest-mpl/pull/252
