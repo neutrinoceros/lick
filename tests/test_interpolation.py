@@ -286,7 +286,7 @@ def test_variable_precision_interpol_inputs(dtype, indexing, subtests):
         yv = np.linspace(0, 20, shape[0], dtype=dtype)
     v1, v2, field = [prng.random(size, dtype=dtype).reshape(shape) for _ in range(3)]
     xx, yy = np.meshgrid(xv, yv, indexing=indexing)
-    xo, yo, v1o, v2o, fieldo = interpol(
+    ir = interpol(
         xx,
         yy,
         field,
@@ -300,8 +300,8 @@ def test_variable_precision_interpol_inputs(dtype, indexing, subtests):
     )
 
     with subtests.test():
-        assert yo.dtype == xo.dtype == dtype
+        assert ir.y_ticks.dtype == ir.x_ticks.dtype == dtype
     with subtests.test():
-        assert v2o.dtype == v1o.dtype == dtype
+        assert ir.v2.dtype == ir.v1.dtype == dtype
     with subtests.test():
-        assert fieldo.dtype == v2o.dtype == dtype
+        assert ir.field.dtype == ir.v2.dtype == dtype
