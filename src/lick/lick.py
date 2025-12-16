@@ -50,7 +50,7 @@ def _equalize_hist(image):
     return out.astype(image.dtype, copy=False)
 
 
-InterlationResults: TypeAlias = tuple[
+InterpolationResults: TypeAlias = tuple[
     FArray1D[F], FArray1D[F], FArray2D[F], FArray2D[F], FArray2D[F]
 ]
 
@@ -69,7 +69,7 @@ def interpol(
     ymin: float | None = None,
     ymax: float | None = None,
     size_interpolated: int = 800,
-) -> InterlationResults[F]:
+) -> InterpolationResults[F]:
     if len(all_dtypes := {_.dtype for _ in (xx, yy, v1, v2, field)}) > 1:
         raise TypeError(f"Received inputs with mixed datatypes ({all_dtypes})")
 
