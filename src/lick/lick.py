@@ -1,5 +1,5 @@
 from functools import partial
-from typing import TYPE_CHECKING, cast
+from typing import TYPE_CHECKING, TypeAlias, cast
 
 import numpy as np
 import rlic
@@ -50,6 +50,11 @@ def _equalize_hist(image):
     return out.astype(image.dtype, copy=False)
 
 
+InterlationResults: TypeAlias = tuple[
+    FArray1D[F], FArray1D[F], FArray2D[F], FArray2D[F], FArray2D[F]
+]
+
+
 def interpol(
     xx: FArray2D[F],
     yy: FArray2D[F],
@@ -64,7 +69,7 @@ def interpol(
     ymin: float | None = None,
     ymax: float | None = None,
     size_interpolated: int = 800,
-) -> tuple[FArray1D[F], FArray1D[F], FArray2D[F], FArray2D[F], FArray2D[F]]:
+) -> InterlationResults[F]:
     if len(all_dtypes := {_.dtype for _ in (xx, yy, v1, v2, field)}) > 1:
         raise TypeError(f"Received inputs with mixed datatypes ({all_dtypes})")
 
@@ -123,6 +128,11 @@ def lick(
     return image
 
 
+LickBoxResults: TypeAlias = tuple[
+    FArray2D[F], FArray2D[F], FArray2D[F], FArray2D[F], FArray2D[F], FArray2D[F]
+]
+
+
 def lick_box(
     x: FArrayND[F],
     y: FArrayND[F],
@@ -140,9 +150,7 @@ def lick_box(
     niter_lic: int = 5,
     kernel_length: int = 101,
     light_source: bool = True,
-) -> tuple[
-    FArray2D[F], FArray2D[F], FArray2D[F], FArray2D[F], FArray2D[F], FArray2D[F]
-]:
+) -> LickBoxResults[F]:
     if len(all_dtypes := {_.dtype for _ in (x, y, v1, v2, field)}) > 1:
         raise TypeError(f"Received inputs with mixed datatypes ({all_dtypes})")
 
@@ -212,13 +220,13 @@ def lick_box_plot(
     stream_density: float = 0,
     alpha_transparency: bool = True,
     alpha: float = 0.3,
-) -> None:
+) -> LickBoxResults[F]:
     if len(all_dtypes := {_.dtype for _ in (x, y, v1, v2, field)}) > 1:
         raise TypeError(f"Received inputs with mixed datatypes ({all_dtypes})")
 
     from mpl_toolkits.axes_grid1 import make_axes_locatable
 
-    Xi, Yi, v1i, v2i, fieldi, licv = lick_box(
+    lbr = Xi, Yi, v1i, v2i, fieldi, licv = lick_box(
         x,
         y,
         v1,
@@ -270,3 +278,6 @@ def lick_box_plot(
     ax.set_xlim(xmin, xmax)
     ax.set_ylim(ymin, ymax)
     # print("streamplot")
+
+    # return the output straight from lick_box
+    return lbr
