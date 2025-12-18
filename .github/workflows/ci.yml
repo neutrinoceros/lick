@@ -20,8 +20,6 @@ jobs:
   unit-tests:
     strategy:
       matrix:
-        os:
-        - ubuntu-latest
         python-version:
         - '3.10'
         - '3.11'
@@ -29,15 +27,11 @@ jobs:
         - '3.13'
         - '3.14'
         include:
-        - os: macos-latest
-          python-version: '3.14'
-        - os: windows-latest
-          python-version: '3.14'
         - os: ubuntu-22.04
           python-version: '3.10'
           install-args: --resolution=lowest
 
-    runs-on: ${{ matrix.os }}
+    runs-on: ubuntu-latest
     steps:
     - name: Checkout Source
       uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 # v6.0.0
@@ -47,32 +41,43 @@ jobs:
         prune-cache: false
         cache-suffix: ${{ matrix.install-args }}
 
-    - name: Build (Linux)
-      if: runner.os == 'Linux'
+    - name: Build
       run: uv sync --group test --group covcheck ${{ matrix.install-args }}
 
-    - name: Build (non Linux)
-      if: runner.os != 'Linux'
-      run: uv sync --no-editable --group test ${{ matrix.install-args }}
-
-    - name: Test (with coverage)
-      if: runner.os == 'Linux'
+    - name: Test
       run: |
         uv run --no-sync coverage run --parallel-mode -m \
-          pytest --color=yes -ra ${{ contains(matrix.install-args, 'lowest') && '-Wdefault' || '' }}
-
-    - name: Test (without coverage)
-      if: runner.os != 'Linux'
-      run: uv run --no-sync pytest --color=yes -ra
+          pytest --color=yes ${{ contains(matrix.install-args, 'lowest') && '-Wdefault' || '' }}
 
     - name: Upload coverage data
-      if: runner.os == 'Linux'
       uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5.0.0
       with:
         path: .coverage.*
-        name: lick_coverage_data-${{ matrix.os }}-${{ matrix.python-version }}${{ matrix.install-args }}
+        name: lick_coverage_data-${{ matrix.python-version }}${{ matrix.install-args }}
         if-no-files-found: error
         include-hidden-files: true
+
+  platform-tests:
+    strategy:
+      matrix:
+        os:
+        - macos-latest
+        - windows-latest
+
+    runs-on: ${{ matrix.os }}
+    steps:
+    - name: Checkout Source
+      uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 # v6.0.0
+    - uses: astral-sh/setup-uv@1e862dfacbd1d6d858c55d9b792c756523627244 # v7.1.4
+      with:
+        python-version: '3.14'
+        prune-cache: false
+
+    - name: Build
+      run: uv sync --group test --no-editable
+
+    - name: Test
+      run: uv run --no-sync pytest --color=yes
 
   image-tests:
     name: Image tests
