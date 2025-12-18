@@ -1,4 +1,5 @@
 from collections.abc import Iterable, Iterator
+from importlib.metadata import version
 from itertools import chain, combinations_with_replacement, permutations
 from typing import TypeVar
 
@@ -7,6 +8,12 @@ import numpy as np
 import pytest
 
 from lick import interpol, lick, lick_box, lick_box_plot
+
+
+def test_dunder_version():
+    import lick
+
+    assert lick.__version__ == version("lick")
 
 
 @pytest.mark.parametrize("indexing", ["ij", "xy"])
