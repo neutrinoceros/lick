@@ -16,6 +16,13 @@ def test_dunder_version():
     assert lick.__version__ == version("lick")
 
 
+def test_missing_module_attr():
+    import lick
+
+    with pytest.raises(AttributeError):
+        _ = lick.this_is_not_an_actual_attribute
+
+
 @pytest.mark.parametrize("indexing", ["ij", "xy"])
 def test_indexing(indexing):
     # regression test for https://github.com/la-niche/lick/issues/218
