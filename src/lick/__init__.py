@@ -1,3 +1,15 @@
+__all__ = [
+    "interpol",
+    "lick",
+    "lick_box",
+    "lick_box_plot",
+]
 from .lick import interpol, lick, lick_box, lick_box_plot
 
-__version__ = "0.9.0"  # keep in sync with pyproject.toml
+
+def __getattr__(item: str):
+    if item == "__version__":
+        from importlib.metadata import version
+
+        return version("lick")
+    raise AttributeError(f"module {__name__!r} has no attribute {item!r}.")
