@@ -45,9 +45,8 @@ def test_indexing(indexing):
         xmax=9,
         ymin=1,
         ymax=4,
-        kernel=np.sin(np.linspace(0, np.pi, 3)),
         niter_lic=1,
-        post_lic="north-west-light-source",
+        kernel_length=3,
     )
 
 

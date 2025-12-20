@@ -61,11 +61,10 @@ lick_box_plot(
     xmax=9,
     ymin=1,
     ymax=4,
-    kernel=np.sin(np.linspace(0, np.pi, 64)),
     niter_lic=5,
-    post_lic="north-west-light-source",
+    kernel_length=64,
     cmap="inferno",
-    stream_density=0.5,
+    stream_density=0.5
 )
 plt.show()
 ```
