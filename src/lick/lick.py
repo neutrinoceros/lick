@@ -8,12 +8,12 @@ import rlic
 from lick import _api
 from lick._image_processing import ImageProcessor
 from lick._interpolation import Grid, Interpolator, Interval, Mesh, Method
-from lick._typing import F, FArray1D, FArray2D, FArrayND
+from lick._typing import AlphaDict, F, FArray1D, FArray2D, FArrayND, MixMulDict
 
 if sys.version_info >= (3, 11):
-    from typing import NamedTuple
+    from typing import NamedTuple, assert_never
 else:
-    from typing_extensions import NamedTuple
+    from typing_extensions import NamedTuple, assert_never
 
 if TYPE_CHECKING:
     from matplotlib.axes import Axes
@@ -260,8 +260,9 @@ def lick_box_plot(
     color_stream: str = "white",
     cmap_stream=None,
     stream_density: float = 0,
-    alpha_transparency: bool = True,
-    alpha: float = 0.3,
+    alpha_transparency: bool | _api.UnsetType = _api.UNSET,
+    alpha: float | _api.UnsetType = _api.UNSET,
+    layering: AlphaDict | MixMulDict | _api.UnsetType = _api.UNSET,
 ) -> LickBoxResults[F]:
     if len(all_dtypes := {_.dtype for _ in (x, y, v1, v2, field)}) > 1:
         raise TypeError(f"Received inputs with mixed datatypes ({all_dtypes})")
@@ -273,6 +274,9 @@ def lick_box_plot(
         dtype=v1.dtype,  # type: ignore[arg-type]
     )
     post_lic = _api.get_post_lic(post_lic, light_source=light_source)
+    resolved_layering = _api.get_layering(
+        layering, alpha=alpha, alpha_transparency=alpha_transparency
+    )
 
     from mpl_toolkits.axes_grid1 import make_axes_locatable
 
@@ -303,13 +307,16 @@ def lick_box_plot(
     pcolormesh = partial(
         ax.pcolormesh, lbr.x_grid, lbr.y_grid, rasterized=True, shading="nearest"
     )
-    if alpha_transparency:
-        im = pcolormesh(new_field, **im_kwargs)
-        pcolormesh(lbr.licv, cmap="gray", alpha=alpha)
-    else:
-        datalicv = lbr.licv * lbr.field
-        datalicv = np.log10(datalicv) if log else datalicv
-        im = pcolormesh(datalicv, **im_kwargs)
+    match resolved_layering.mode:
+        case _api.LayeringMode.ALPHA:
+            im = pcolormesh(new_field, **im_kwargs)
+            pcolormesh(lbr.licv, cmap="gray", alpha=resolved_layering.alpha)
+        case _api.LayeringMode.MIX_MUL:
+            datalicv = lbr.licv * lbr.field
+            datalicv = np.log10(datalicv) if log else datalicv
+            im = pcolormesh(datalicv, **im_kwargs)
+        case _ as unreachable:
+            assert_never(unreachable)
 
     divider = make_axes_locatable(ax)
     cax = divider.append_axes("right", size="5%", pad=0.05)

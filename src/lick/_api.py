@@ -1,5 +1,6 @@
 __all__ = [
     "get_kernel",
+    "get_layering",
     "get_niter_lic",
     "get_post_lic",
     "UNSET",
@@ -10,8 +11,14 @@ import warnings
 from enum import Enum, auto
 from typing import Any, Literal
 
-from lick._image_processing import Identity, ImageProcessor, NorthWestLightSource
-from lick._typing import F, FArray1D
+from lick._image_processing import (
+    Identity,
+    ImageProcessor,
+    Layering,
+    LayeringMode,
+    NorthWestLightSource,
+)
+from lick._typing import AlphaDict, F, FArray1D, MixMulDict
 
 if sys.version_info >= (3, 11):
     from typing import assert_never
@@ -34,6 +41,8 @@ class LegacyDefault(Enum):
     KERNEL = "auto-legacy"
     NITER_LIC = 5
     POST_LIC = "north-west-light-source"
+    ALPHA = 0.3
+    ALPHA_TRANSPARENCY = True
 
 
 LEGACY_DEFAULT_USED_MSG = (
@@ -177,3 +186,37 @@ def get_post_lic(
             return Identity()
         case _:
             return post_lic
+
+
+def get_layering(
+    layering: AlphaDict | MixMulDict | UnsetType,
+    *,
+    alpha: float | UnsetType,
+    alpha_transparency: bool | UnsetType,
+) -> Layering:
+    if layering is not UNSET and (alpha is not UNSET):
+        raise TypeError(MUTUALLY_EXCLUSIVE_KW_MSG.format(kw="alpha", alt_kw="layering"))
+    if layering is not UNSET and (alpha_transparency is not UNSET):
+        raise TypeError(
+            MUTUALLY_EXCLUSIVE_KW_MSG.format(kw="alpha_transparency", alt_kw="layering")
+        )
+
+    if layering is not UNSET:
+        return Layering.from_dict(layering)
+
+    if alpha_transparency is not UNSET:
+        warn_legacy_kw_used(
+            kw="alpha_transparency", alt_kw="layering", since_version="0.10.0"
+        )
+    else:
+        alpha_transparency = LegacyDefault.ALPHA_TRANSPARENCY.value
+
+    if alpha is not UNSET:
+        warn_legacy_kw_used(kw="alpha", alt_kw="layering", since_version="0.10.0")
+    else:
+        alpha = LegacyDefault.ALPHA.value
+
+    if alpha_transparency:
+        return Layering(mode=LayeringMode.ALPHA, alpha=alpha)
+    else:
+        return Layering(mode=LayeringMode.MIX_MUL)

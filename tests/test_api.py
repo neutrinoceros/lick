@@ -1,7 +1,12 @@
 import pytest
 
 from lick import _api
-from lick._image_processing import Identity, NorthWestLightSource
+from lick._image_processing import (
+    Identity,
+    Layering,
+    LayeringMode,
+    NorthWestLightSource,
+)
 
 
 def test_get_kernel_invalid_call():
@@ -167,3 +172,87 @@ def test_get_post_lic_light_source_bool(light_source_bool, cls):
 def test_get_post_lic_none():
     post_lic = _api.get_post_lic(None, light_source=_api.UNSET)
     assert isinstance(post_lic, Identity)
+
+
+def test_get_layering_default():
+    layering = _api.get_layering(
+        _api.UNSET, alpha=_api.UNSET, alpha_transparency=_api.UNSET
+    )
+    assert layering == Layering(
+        mode=LayeringMode.ALPHA, alpha=_api.LegacyDefault.ALPHA.value
+    )
+
+
+@pytest.mark.parametrize(
+    "d",
+    [
+        pytest.param({"alpha": 0.1}, id="alpha-10%"),
+        pytest.param({"alpha": 0.4}, id="alpha-40%"),
+        pytest.param({"mix": "mul"}, id="mixmul"),
+    ],
+)
+def test_get_layering_explicit(d):
+    layering = _api.get_layering(d, alpha=_api.UNSET, alpha_transparency=_api.UNSET)
+    assert layering == Layering.from_dict(d)
+
+
+@pytest.mark.parametrize(
+    "kwarg",
+    [
+        pytest.param({"alpha": 0.5}, id="alpha"),
+        pytest.param({"alpha_transparency": False}, id="alpha_transparency"),
+    ],
+)
+def test_get_layering_invalid_call(kwarg):
+    kw = next(iter(kwarg))
+    kwargs = {"alpha": _api.UNSET, "alpha_transparency": _api.UNSET} | kwarg
+    with pytest.raises(
+        TypeError,
+        match=(
+            rf"^{kw} and layering keyword arguments are mutually exclusive, "
+            r"but both were received\.$"
+        ),
+    ):
+        _api.get_layering({"alpha": 0.2}, **kwargs)
+
+
+@pytest.mark.parametrize("alpha", [0.1, 0.2, 0.8])
+def test_get_layering_from_alpha(alpha):
+    with pytest.warns(
+        DeprecationWarning,
+        match=(
+            r"^The alpha keyword argument is deprecated since lick v0\.10\.0 "
+            r"and will be removed in a future version\. Use the layering argument instead\.$"
+        ),
+    ):
+        layering = _api.get_layering(
+            _api.UNSET, alpha=alpha, alpha_transparency=_api.UNSET
+        )
+
+    assert layering == Layering(mode=LayeringMode.ALPHA, alpha=alpha)
+
+
+@pytest.mark.parametrize(
+    "transparency, expected",
+    [
+        pytest.param(False, Layering(mode=LayeringMode.MIX_MUL), id="mixmul"),
+        pytest.param(
+            True,
+            Layering(mode=LayeringMode.ALPHA, alpha=_api.LegacyDefault.ALPHA.value),
+            id="alpha",
+        ),
+    ],
+)
+def test_get_layering_from_alpha_transparency(transparency, expected):
+    with pytest.warns(
+        DeprecationWarning,
+        match=(
+            r"^The alpha_transparency keyword argument is deprecated since lick v0\.10\.0 "
+            r"and will be removed in a future version\. Use the layering argument instead\.$"
+        ),
+    ):
+        layering = _api.get_layering(
+            _api.UNSET, alpha=_api.UNSET, alpha_transparency=transparency
+        )
+
+    assert layering == expected
