@@ -4,7 +4,7 @@ __all__ = [
     "lick_box",
     "lick_box_plot",
 ]
-from .lick import interpol, lick, lick_box, lick_box_plot
+from lick._publib import interpol, lick, lick_box, lick_box_plot
 
 
 def __getattr__(item: str):
