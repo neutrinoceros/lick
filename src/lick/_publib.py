@@ -67,8 +67,8 @@ class InterpolationResults(NamedTuple, Generic[F]):
 
 
 def interpol(
-    xx: FArray2D[F],
-    yy: FArray2D[F],
+    x: FArrayND[F],
+    y: FArrayND[F],
     v1: FArray2D[F],
     v2: FArray2D[F],
     field: FArray2D[F],
@@ -80,25 +80,27 @@ def interpol(
     ymin: float | None = None,
     ymax: float | None = None,
     size_interpolated: int = 800,
+    indexing: Literal["xy", "ij"] | _api.UnsetType = _api.UNSET,
 ) -> InterpolationResults[F]:
-    if len(all_dtypes := {_.dtype for _ in (xx, yy, v1, v2, field)}) > 1:
+    if len(all_dtypes := {_.dtype for _ in (x, y, v1, v2, field)}) > 1:
         raise TypeError(f"Received inputs with mixed datatypes ({all_dtypes})")
+    input_mesh = _api.get_mesh(x, y, indexing=indexing)
 
     target_grid = Grid.from_intervals(
         x=Interval(
-            min=float(xx.min()),
-            max=float(xx.max()),
+            min=float(x.min()),
+            max=float(x.max()),
         ).with_overrides(min=xmin, max=xmax),
         y=Interval(
-            min=float(yy.min()),
-            max=float(yy.max()),
+            min=float(y.min()),
+            max=float(y.max()),
         ).with_overrides(min=ymin, max=ymax),
         small_dim_npoints=size_interpolated,
-        dtype=cast(F, xx.dtype),
+        dtype=cast(F, x.dtype),
     )
 
     interpolate = Interpolator(
-        input_mesh=Mesh(x=xx, y=yy),
+        input_mesh=input_mesh,
         target_mesh=Mesh.from_grid(target_grid, indexing="xy"),
     )
 
@@ -178,9 +180,11 @@ def lick_box(
     | ImageProcessor
     | _api.UnsetType = _api.UNSET,
     light_source: bool | _api.UnsetType = _api.UNSET,
+    indexing: Literal["xy", "ij"] | _api.UnsetType = _api.UNSET,
 ) -> LickBoxResults[F]:
     if len(all_dtypes := {_.dtype for _ in (x, y, v1, v2, field)}) > 1:
         raise TypeError(f"Received inputs with mixed datatypes ({all_dtypes})")
+    grid_or_mesh = _api.get_grid_or_mesh(x, y)  # type: ignore[arg-type]
     niter_lic = _api.get_niter_lic(niter_lic)
     kernel = _api.get_kernel(
         kernel,
@@ -190,22 +194,9 @@ def lick_box(
     )
     post_lic = _api.get_post_lic(post_lic, light_source=light_source)
 
-    yy: FArray2D
-    xx: FArray2D
-    if x.ndim == y.ndim == 2:
-        yy = cast(FArray2D, y)
-        xx = cast(FArray2D, x)
-    elif x.ndim == y.ndim == 1:
-        yy, xx = np.meshgrid(y, x)
-    else:
-        raise ValueError(
-            f"Received 'x' with shape {x.shape}"
-            f"and 'y' with shape {y.shape}. "
-            "Expected them to be both 1D or 2D arrays with identical shapes"
-        )
     ir = interpol(
-        xx,
-        yy,
+        grid_or_mesh.x,
+        grid_or_mesh.y,
         v1,
         v2,
         field,
@@ -216,6 +207,7 @@ def lick_box(
         ymin=ymin,
         ymax=ymax,
         size_interpolated=size_interpolated,
+        indexing=indexing,
     )
     Xi, Yi = np.meshgrid(ir.x_ticks, ir.y_ticks)
     licv = lick(
@@ -263,9 +255,11 @@ def lick_box_plot(
     alpha_transparency: bool | _api.UnsetType = _api.UNSET,
     alpha: float | _api.UnsetType = _api.UNSET,
     layering: AlphaDict | MixMulDict | _api.UnsetType = _api.UNSET,
+    indexing: Literal["xy", "ij"] | _api.UnsetType = _api.UNSET,
 ) -> LickBoxResults[F]:
     if len(all_dtypes := {_.dtype for _ in (x, y, v1, v2, field)}) > 1:
         raise TypeError(f"Received inputs with mixed datatypes ({all_dtypes})")
+    grid_or_mesh = _api.get_grid_or_mesh(x, y)  # type: ignore[arg-type]
     niter_lic = _api.get_niter_lic(niter_lic)
     kernel = _api.get_kernel(
         kernel,
@@ -281,8 +275,8 @@ def lick_box_plot(
     from mpl_toolkits.axes_grid1 import make_axes_locatable
 
     lbr = lick_box(
-        x,
-        y,
+        grid_or_mesh.x,
+        grid_or_mesh.y,
         v1,
         v2,
         field,
@@ -296,6 +290,7 @@ def lick_box_plot(
         kernel=kernel,
         niter_lic=niter_lic,
         post_lic=post_lic,
+        indexing=indexing,
     )
 
     new_field = np.log10(lbr.field) if log else lbr.field

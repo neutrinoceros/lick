@@ -1,7 +1,10 @@
 __all__ = [
+    "get_grid_or_mesh",
+    "get_indexing",
     "get_kernel",
     "get_layering",
     "get_niter_lic",
+    "get_mesh",
     "get_post_lic",
     "UNSET",
     "UnsetType",
@@ -9,7 +12,7 @@ __all__ = [
 import sys
 import warnings
 from enum import Enum, auto
-from typing import Any, Literal
+from typing import Any, Literal, overload
 
 from lick._image_processing import (
     Identity,
@@ -18,7 +21,8 @@ from lick._image_processing import (
     LayeringMode,
     NorthWestLightSource,
 )
-from lick._typing import AlphaDict, F, FArray1D, MixMulDict
+from lick._interpolation import Grid, Mesh
+from lick._typing import AlphaDict, F, FArray1D, FArray2D, FArrayND, MixMulDict
 
 if sys.version_info >= (3, 11):
     from typing import assert_never
@@ -43,23 +47,33 @@ class LegacyDefault(Enum):
     POST_LIC = "north-west-light-source"
     ALPHA = 0.3
     ALPHA_TRANSPARENCY = True
+    INDEXING = "xy"
+
+
+class NoDefaultType(Enum):
+    NODEFAULT = auto()
 
 
 LEGACY_DEFAULT_USED_MSG = (
     "The {kw} argument was not explicitly specified. "
-    "Its default value will change from {legacy_default.value!r} to {future_default!r} "
-    "in a future release.\n"
+    "{expect_change} in a future release.\n"
     "To silence this warning, set the argument explicitly."
 )
 
 
 def warn_legacy_default_used(
-    kw: str, *, legacy_default: LegacyDefault, future_default: Any
+    kw: str, *, legacy_default: LegacyDefault, future_default: Any | NoDefaultType
 ) -> None:
+    if future_default is NoDefaultType.NODEFAULT:
+        change = (
+            f"Falling back {legacy_default.value!r} as a default value, "
+            "but this parameter will be required"
+        )
+    else:
+        change = f"Its default value will change from {legacy_default.value!r} to {future_default!r}"
+
     warnings.warn(
-        LEGACY_DEFAULT_USED_MSG.format(
-            kw=kw, legacy_default=legacy_default, future_default=future_default
-        ),
+        LEGACY_DEFAULT_USED_MSG.format(kw=kw, expect_change=change),
         DeprecationWarning,
         stacklevel=4,
     )
@@ -186,6 +200,56 @@ def get_post_lic(
             return Identity()
         case _:
             return post_lic
+
+
+def get_indexing(indexing: Literal["xy", "ij"] | UnsetType) -> Literal["xy", "ij"]:
+    if indexing is UNSET:
+        warn_legacy_default_used(
+            kw="indexing",
+            legacy_default=LegacyDefault.INDEXING,
+            future_default=NoDefaultType.NODEFAULT,
+        )
+        return LegacyDefault.INDEXING.value
+
+    if indexing in ["xy", "ij"]:
+        return indexing
+
+    raise ValueError(f"Received invalid {indexing=!r}")
+
+
+@overload
+def get_grid_or_mesh(x: FArray1D[F], y: FArray1D[F]) -> Grid[F]: ...
+@overload
+def get_grid_or_mesh(x: FArray2D[F], y: FArray2D[F]) -> Mesh[F]: ...
+def get_grid_or_mesh(x: FArrayND[F], y: FArrayND[F]) -> Grid[F] | Mesh[F]:
+    if x.ndim == y.ndim == 1:
+        return Grid(x=x, y=y)  # type: ignore[arg-type]
+
+    if x.ndim == y.ndim == 2:
+        return Mesh(x=x, y=y)  # type: ignore[arg-type]
+
+    raise TypeError(
+        f"Received {x.shape=} and {y.shape=}. "
+        "Expected them to have identical dimensionalities."
+    )
+
+
+def get_mesh(
+    x: FArrayND[F], y: FArrayND[F], indexing=Literal["xy", "ij", UNSET]
+) -> Mesh[F]:
+    match grid_or_mesh := get_grid_or_mesh(x, y):  # type: ignore[arg-type]
+        case Grid():
+            indexing = get_indexing(indexing)
+            return Mesh.from_grid(grid_or_mesh, indexing=indexing)
+        case Mesh():
+            if indexing is not UNSET:
+                warnings.warn(
+                    f"{indexing=!r} will be ignored because a mesh is already defined",
+                    stacklevel=3,
+                )
+            return grid_or_mesh
+        case _ as unreachable:
+            assert_never(unreachable)
 
 
 def get_layering(
