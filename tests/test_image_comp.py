@@ -9,6 +9,7 @@ import pytest
 from numpy.typing import NDArray
 
 from lick import lick_box_plot
+from lick._typing import AlphaDict, MixMulDict
 
 FArray: TypeAlias = NDArray[np.dtype("float64")]
 
@@ -29,6 +30,8 @@ class Inputs:
     xrange: Range
     yrange: Range
     indexing: Literal["ij", "xy"]
+    layering: AlphaDict | MixMulDict
+    stream_density: float
 
 
 def radius(x: FArray, y: FArray) -> FArray:
@@ -52,6 +55,8 @@ def azimuth(x: FArray, y: FArray) -> FArray:
                 xrange=Range(min_value=-1.0, max_value=1.0),
                 yrange=Range(min_value=-1.0, max_value=1.0),
                 indexing="ij",
+                layering={"alpha": 0.3},
+                stream_density=0.5,
             ),
             id="radial-velocity",
         ),
@@ -65,8 +70,25 @@ def azimuth(x: FArray, y: FArray) -> FArray:
                 xrange=Range(min_value=0.0, max_value=2 * pi),
                 yrange=Range(min_value=-pi, max_value=pi),
                 indexing="xy",
+                layering={"alpha": 0.3},
+                stream_density=0.5,
             ),
             id="vortices",
+        ),
+        pytest.param(
+            Inputs(
+                x=np.geomspace(0.01, 10, 120),
+                y=np.linspace(-7.0, 7.0, 128),
+                vx=lambda xg, yg: np.sin(yg),
+                vy=lambda xg, yg: np.cos(xg),
+                field=lambda xg, yg, vx, vy: vx**2 + vy**2,
+                xrange=Range(min_value=0.0, max_value=2 * pi),
+                yrange=Range(min_value=-pi, max_value=pi),
+                indexing="xy",
+                layering={"mix": "mul"},
+                stream_density=0.0,
+            ),
+            id="vortices-mixmul",
         ),
     ],
 )
@@ -97,7 +119,8 @@ def test_lick_img(inputs):
         niter_lic=5,
         post_lic="north-west-light-source",
         cmap="inferno",
-        stream_density=0.5,
+        stream_density=inputs.stream_density,
+        layering=inputs.layering,
     )
     ax.set(aspect="equal")
     return fig
