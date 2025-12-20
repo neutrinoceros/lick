@@ -93,8 +93,9 @@ def test_lick_img(inputs):
         xmax=inputs.xrange.max_value,
         ymin=inputs.yrange.min_value,
         ymax=inputs.yrange.max_value,
+        kernel=np.sin(np.linspace(0.0, np.pi, 64, endpoint=False)).astype(xg.dtype),
         niter_lic=5,
-        kernel_length=64,
+        post_lic="north-west-light-source",
         cmap="inferno",
         stream_density=0.5,
     )

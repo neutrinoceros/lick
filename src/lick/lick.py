@@ -1,10 +1,12 @@
 import sys
 from functools import partial
-from typing import TYPE_CHECKING, Generic, cast
+from typing import TYPE_CHECKING, Generic, Literal, cast
 
 import numpy as np
 import rlic
 
+from lick import _api
+from lick._image_processing import ImageProcessor
 from lick._interpolation import Grid, Interpolator, Interval, Mesh, Method
 from lick._typing import F, FArray1D, FArray2D, FArrayND
 
@@ -113,28 +115,35 @@ def lick(
     v1: FArray2D[F],
     v2: FArray2D[F],
     *,
-    niter_lic: int = 5,
-    kernel_length: int = 101,
-    light_source: bool = True,
+    niter_lic: int | _api.UnsetType = _api.UNSET,
+    kernel: FArray1D[F]
+    | Literal["auto-adjust", "auto-legacy"]
+    | _api.UnsetType = _api.UNSET,
+    kernel_length: int | _api.UnsetType = _api.UNSET,
+    post_lic: Literal[None, "north-west-light-source"]
+    | ImageProcessor
+    | _api.UnsetType = _api.UNSET,
+    light_source: bool | _api.UnsetType = _api.UNSET,
 ) -> FArray2D[F]:
     if len(all_dtypes := {_.dtype for _ in (v1, v2)}) > 1:
         raise TypeError(f"Received inputs with mixed datatypes ({all_dtypes})")
+    niter_lic = _api.get_niter_lic(niter_lic)
+    kernel = _api.get_kernel(
+        kernel,
+        size=kernel_length,
+        max_auto_size=min(*v1.shape, *v2.shape),
+        dtype=v1.dtype,  # type: ignore[arg-type]
+    )
+    post_lic = _api.get_post_lic(post_lic, light_source=light_source)
+
     rng = np.random.default_rng(seed=0)
     texture = rng.normal(0.5, 0.001**0.5, v1.shape).astype(v1.dtype, copy=False)
-    kernel = np.sin(np.arange(kernel_length, dtype=v1.dtype) * np.pi / kernel_length)
 
     image = rlic.convolve(texture, v1, v2, kernel=kernel, iterations=niter_lic)
     image = _equalize_hist(image)
     image /= image.max()
 
-    if light_source:
-        from matplotlib.colors import LightSource
-
-        # Illuminate the scene from the northwest
-        ls = LightSource(azdeg=0, altdeg=45)
-        image = ls.hillshade(image, vert_exag=5)
-
-    return image
+    return post_lic.process(image)
 
 
 class LickBoxResults(NamedTuple, Generic[F]):
@@ -160,12 +169,26 @@ def lick_box(
     xmax: float | None = None,
     ymin: float | None = None,
     ymax: float | None = None,
-    niter_lic: int = 5,
-    kernel_length: int = 101,
-    light_source: bool = True,
+    niter_lic: int | _api.UnsetType = _api.UNSET,
+    kernel: FArray1D[F]
+    | Literal["auto-adjust", "auto-legacy"]
+    | _api.UnsetType = _api.UNSET,
+    kernel_length: int | _api.UnsetType = _api.UNSET,
+    post_lic: Literal[None, "north-west-light-source"]
+    | ImageProcessor
+    | _api.UnsetType = _api.UNSET,
+    light_source: bool | _api.UnsetType = _api.UNSET,
 ) -> LickBoxResults[F]:
     if len(all_dtypes := {_.dtype for _ in (x, y, v1, v2, field)}) > 1:
         raise TypeError(f"Received inputs with mixed datatypes ({all_dtypes})")
+    niter_lic = _api.get_niter_lic(niter_lic)
+    kernel = _api.get_kernel(
+        kernel,
+        size=kernel_length,
+        max_auto_size=size_interpolated,
+        dtype=v1.dtype,  # type: ignore[arg-type]
+    )
+    post_lic = _api.get_post_lic(post_lic, light_source=light_source)
 
     yy: FArray2D
     xx: FArray2D
@@ -198,9 +221,9 @@ def lick_box(
     licv = lick(
         ir.v1,
         ir.v2,
+        kernel=kernel,
         niter_lic=niter_lic,
-        kernel_length=kernel_length,
-        light_source=light_source,
+        post_lic=post_lic,
     )
     return LickBoxResults(Xi, Yi, ir.v1, ir.v2, ir.field, licv)
 
@@ -223,19 +246,33 @@ def lick_box_plot(
     xmax: float | None = None,
     ymin: float | None = None,
     ymax: float | None = None,
-    niter_lic: int = 5,
-    kernel_length: int = 101,
+    niter_lic: int | _api.UnsetType = _api.UNSET,
+    kernel: FArray1D[F]
+    | Literal["auto-adjust", "auto-legacy"]
+    | _api.UnsetType = _api.UNSET,
+    kernel_length: int | _api.UnsetType = _api.UNSET,
+    post_lic: Literal[None, "north-west-light-source"]
+    | ImageProcessor
+    | _api.UnsetType = _api.UNSET,
+    light_source: bool | _api.UnsetType = _api.UNSET,
     log: bool = False,
     cmap=None,
     color_stream: str = "white",
     cmap_stream=None,
-    light_source: bool = True,
     stream_density: float = 0,
     alpha_transparency: bool = True,
     alpha: float = 0.3,
 ) -> LickBoxResults[F]:
     if len(all_dtypes := {_.dtype for _ in (x, y, v1, v2, field)}) > 1:
         raise TypeError(f"Received inputs with mixed datatypes ({all_dtypes})")
+    niter_lic = _api.get_niter_lic(niter_lic)
+    kernel = _api.get_kernel(
+        kernel,
+        size=kernel_length,
+        max_auto_size=size_interpolated,
+        dtype=v1.dtype,  # type: ignore[arg-type]
+    )
+    post_lic = _api.get_post_lic(post_lic, light_source=light_source)
 
     from mpl_toolkits.axes_grid1 import make_axes_locatable
 
@@ -252,9 +289,9 @@ def lick_box_plot(
         xmax=xmax,
         ymin=ymin,
         ymax=ymax,
+        kernel=kernel,
         niter_lic=niter_lic,
-        kernel_length=kernel_length,
-        light_source=light_source,
+        post_lic=post_lic,
     )
 
     new_field = np.log10(lbr.field) if log else lbr.field
