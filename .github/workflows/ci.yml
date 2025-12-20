@@ -77,7 +77,7 @@ jobs:
       run: uv sync --group test --no-editable
 
     - name: Test
-      run: uv run --no-sync pytest --color=yes -k "not image_comp"
+      run: uv run --no-sync pytest --color=yes
 
   image-tests:
     name: Image tests
