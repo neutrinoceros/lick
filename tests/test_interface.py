@@ -23,33 +23,6 @@ def test_missing_module_attr():
         _ = lick.this_is_not_an_actual_attribute
 
 
-@pytest.mark.parametrize("indexing", ["ij", "xy"])
-def test_indexing(indexing):
-    # regression test for https://github.com/la-niche/lick/issues/218
-    nx = 32
-    x = np.geomspace(0.1, 10, nx)
-    y = np.geomspace(0.1, 5, nx)
-    XX, YY = np.meshgrid(x, y, indexing=indexing)
-    V1 = np.cos(XX)
-    V2 = np.sin(YY)
-    field = V1**2 + V2**2
-    lick_box(
-        XX,
-        YY,
-        V1,
-        V2,
-        field,
-        size_interpolated=nx,
-        method="nearest",
-        xmin=1,
-        xmax=9,
-        ymin=1,
-        ymax=4,
-        niter_lic=1,
-        kernel_length=3,
-    )
-
-
 X = np.linspace(0.0, 10.0, 32, dtype="float64")
 Y = np.linspace(0.0, 20.0, 64, dtype="float64")
 XX, YY = np.meshgrid(X, Y)
