@@ -10,4 +10,10 @@ def test_single_prec():
     V1 = np.cos(XX)
     V2 = np.sin(YY)
 
-    lick(V1, V2, niter_lic=1)
+    lick(
+        V1,
+        V2,
+        niter_lic=1,
+        kernel="auto-adjust",
+        post_lic=None,
+    )
