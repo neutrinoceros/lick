@@ -1,3 +1,9 @@
+__all__ = [
+    "interpol",
+    "lick",
+    "lick_box",
+    "lick_box_plot",
+]
 import sys
 from functools import partial
 from typing import TYPE_CHECKING, Generic, Literal, cast
@@ -6,7 +12,7 @@ import numpy as np
 import rlic
 
 from lick import _api
-from lick._image_processing import ImageProcessor
+from lick._image_processing import HistogramEqualizer, ImageProcessor, Normalizer
 from lick._interpolation import Grid, Interpolator, Interval, Mesh, Method
 from lick._typing import AlphaDict, F, FArray1D, FArray2D, FArrayND, MixMulDict
 
@@ -18,44 +24,6 @@ else:
 if TYPE_CHECKING:
     from matplotlib.axes import Axes
     from matplotlib.figure import Figure
-
-
-def _equalize_hist(image):
-    # adapted from scikit-image
-    """Return image after histogram equalization.
-
-    Parameters
-    ----------
-    image : array
-        Image array.
-
-    Returns
-    -------
-    out : float array
-        Image array after histogram equalization.
-
-    Notes
-    -----
-    This function is adapted from [1]_ with the author's permission.
-
-    References
-    ----------
-    .. [1] http://www.janeriksolem.net/histogram-equalization-with-python-and.html
-    .. [2] https://en.wikipedia.org/wiki/Histogram_equalization
-
-    """
-    hist, bin_edges = np.histogram(image.ravel(), bins=256, range=None)
-    bin_centers = (bin_edges[:-1] + bin_edges[1:]) / 2.0
-
-    cdf = hist.cumsum()
-    cdf = cdf / float(cdf[-1])
-
-    cdf = cdf.astype(image.dtype, copy=False)
-    out = np.interp(image.flat, bin_centers, cdf)
-    out = out.reshape(image.shape)
-    # Unfortunately, np.interp currently always promotes to float64, so we
-    # have to cast back to single precision when float32 output is desired
-    return out.astype(image.dtype, copy=False)
 
 
 class InterpolationResults(NamedTuple, Generic[F]):
@@ -142,10 +110,11 @@ def lick(
     texture = rng.normal(0.5, 0.001**0.5, v1.shape).astype(v1.dtype, copy=False)
 
     image = rlic.convolve(texture, v1, v2, kernel=kernel, iterations=niter_lic)
-    image = _equalize_hist(image)
-    image /= image.max()
+    processors: list[ImageProcessor] = [HistogramEqualizer(), Normalizer(), post_lic]
+    for ip in processors:
+        image = ip.process(image)
 
-    return post_lic.process(image)
+    return image
 
 
 class LickBoxResults(NamedTuple, Generic[F]):
