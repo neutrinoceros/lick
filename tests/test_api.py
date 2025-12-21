@@ -1,3 +1,4 @@
+import numpy as np
 import pytest
 
 from lick import _api
@@ -7,6 +8,7 @@ from lick._image_processing import (
     LayeringMode,
     NorthWestLightSource,
 )
+from lick._interpolation import Grid, Mesh
 
 
 def test_get_kernel_invalid_call():
@@ -172,6 +174,68 @@ def test_get_post_lic_light_source_bool(light_source_bool, cls):
 def test_get_post_lic_none():
     post_lic = _api.get_post_lic(None, light_source=_api.UNSET)
     assert isinstance(post_lic, Identity)
+
+
+@pytest.mark.parametrize("indexing", ["xy", "ij"])
+def test_get_indexing(indexing):
+    assert _api.get_indexing(indexing) == indexing
+
+
+def test_get_indexing_unset():
+    with pytest.warns(
+        DeprecationWarning,
+        match=(
+            r"^The indexing argument was not explicitly specified\. "
+            r"Falling back 'xy' as a default value, but this parameter "
+            r"will be required in a future release\.\n"
+            r"To silence this warning, set the argument explicitly\.$"
+        ),
+    ):
+        _api.get_indexing(_api.UNSET)
+
+
+def test_get_indexing_unknown():
+    with pytest.raises(ValueError, match=r"^Received invalid indexing='spam'$"):
+        _api.get_indexing("spam")
+
+
+def test_get_grid_or_mesh_grid():
+    res = _api.get_grid_or_mesh(np.linspace(-1.0, 1.0, 8), np.linspace(-1.0, 1.0, 9))
+    assert type(res) is Grid
+
+
+def test_get_grid_or_mesh_mesh():
+    res = _api.get_grid_or_mesh(
+        np.atleast_2d(np.linspace(-1.0, 1.0, 8)),
+        np.atleast_2d(np.linspace(-1.0, 1.0, 8)),
+    )
+    assert type(res) is Mesh
+
+
+def test_get_mesh_ignored_indexing():
+    with pytest.warns(
+        UserWarning,
+        match=r"^indexing='ij' will be ignored because a mesh is already defined$",
+    ):
+        _api.get_mesh(
+            np.atleast_2d(np.linspace(-1.0, 1.0, 8)),
+            np.atleast_2d(np.linspace(-1.0, 1.0, 8)),
+            indexing="ij",
+        )
+
+
+def test_get_grid_or_mesh_mixed_ndims():
+    with pytest.raises(
+        TypeError,
+        match=(
+            r"^Received x.shape=\(8,\) and y.shape=\(1, 9\)\. "
+            r"Expected them to have identical dimensionalities\.$"
+        ),
+    ):
+        _api.get_grid_or_mesh(
+            np.linspace(-1.0, 1.0, 8),
+            np.atleast_2d(np.linspace(-1.0, 1.0, 9)),
+        )
 
 
 def test_get_layering_default():

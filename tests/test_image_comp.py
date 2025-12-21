@@ -104,8 +104,8 @@ def test_lick_img(inputs):
     lick_box_plot(
         fig,
         ax,
-        xg,
-        yg,
+        inputs.x,
+        inputs.y,
         vx,
         vy,
         field,
@@ -121,6 +121,7 @@ def test_lick_img(inputs):
         cmap="inferno",
         stream_density=inputs.stream_density,
         layering=inputs.layering,
+        indexing=inputs.indexing,
     )
     ax.set(aspect="equal")
     return fig
