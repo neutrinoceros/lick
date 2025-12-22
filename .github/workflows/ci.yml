@@ -167,7 +167,14 @@ jobs:
 
   typecheck:
     runs-on: ubuntu-latest
-    name: type check
+    name: type check ${{ matrix.python-version}}
+    strategy:
+      matrix:
+        python-version:
+        # using 3.11 for type checking as the oldest supported Python
+        # with access to numpy 2.2, required for sane array type checking
+        - '3.11'
+        - '3.14'
 
     steps:
     - name: Checkout repo
@@ -175,9 +182,7 @@ jobs:
 
     - uses: astral-sh/setup-uv@1e862dfacbd1d6d858c55d9b792c756523627244 # v7.1.4
       with:
-        # using 3.11 for type checking as the oldest supported Python
-        # with access to numpy 2.2, required for sane array type checking
-        python-version: '3.11'
+        python-version: ${{ matrix.python-version }}
         prune-cache: false
         cache-suffix: typecheck
 
