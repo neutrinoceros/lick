@@ -14,7 +14,7 @@ import rlic
 from lick import _api
 from lick._image_processing import HistogramEqualizer, ImageProcessor, Normalizer
 from lick._interpolation import Grid, Interpolator, Interval, Mesh, Method
-from lick._typing import AlphaDict, F, FArray1D, FArray2D, FArrayND, MixMulDict
+from lick._typing import AlphaDict, D, F, FArray, FArray1D, FArray2D, MixMulDict
 
 if sys.version_info >= (3, 11):
     from typing import NamedTuple, assert_never
@@ -35,8 +35,8 @@ class InterpolationResults(NamedTuple, Generic[F]):
 
 
 def interpol(
-    x: FArrayND[F],
-    y: FArrayND[F],
+    x: FArray[D, F],
+    y: FArray[D, F],
     v1: FArray2D[F],
     v2: FArray2D[F],
     field: FArray2D[F],
@@ -127,8 +127,8 @@ class LickBoxResults(NamedTuple, Generic[F]):
 
 
 def lick_box(
-    x: FArrayND[F],
-    y: FArrayND[F],
+    x: FArray[D, F],
+    y: FArray[D, F],
     v1: FArray2D[F],
     v2: FArray2D[F],
     field: FArray2D[F],
@@ -192,8 +192,8 @@ def lick_box(
 def lick_box_plot(
     fig: "Figure",
     ax: "Axes",
-    x: FArrayND[F],
-    y: FArrayND[F],
+    x: FArray[D, F],
+    y: FArray[D, F],
     v1: FArray2D[F],
     v2: FArray2D[F],
     field: FArray2D[F],

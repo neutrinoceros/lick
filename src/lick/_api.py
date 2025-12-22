@@ -22,7 +22,7 @@ from lick._image_processing import (
     NorthWestLightSource,
 )
 from lick._interpolation import Grid, Mesh
-from lick._typing import AlphaDict, F, FArray1D, FArray2D, FArrayND, MixMulDict
+from lick._typing import AlphaDict, D, F, FArray, FArray1D, FArray2D, MixMulDict
 
 if sys.version_info >= (3, 11):
     from typing import assert_never
@@ -221,7 +221,7 @@ def get_indexing(indexing: Literal["xy", "ij"] | UnsetType) -> Literal["xy", "ij
 def get_grid_or_mesh(x: FArray1D[F], y: FArray1D[F]) -> Grid[F]: ...
 @overload
 def get_grid_or_mesh(x: FArray2D[F], y: FArray2D[F]) -> Mesh[F]: ...
-def get_grid_or_mesh(x: FArrayND[F], y: FArrayND[F]) -> Grid[F] | Mesh[F]:
+def get_grid_or_mesh(x: FArray[D, F], y: FArray[D, F]) -> Grid[F] | Mesh[F]:
     if x.ndim == y.ndim == 1:
         return Grid(x=x, y=y)  # type: ignore[arg-type]
 
@@ -235,7 +235,7 @@ def get_grid_or_mesh(x: FArrayND[F], y: FArrayND[F]) -> Grid[F] | Mesh[F]:
 
 
 def get_mesh(
-    x: FArrayND[F], y: FArrayND[F], indexing=Literal["xy", "ij", UNSET]
+    x: FArray[D, F], y: FArray[D, F], indexing=Literal["xy", "ij", UNSET]
 ) -> Mesh[F]:
     match grid_or_mesh := get_grid_or_mesh(x, y):  # type: ignore[arg-type]
         case Grid():
