@@ -1,4 +1,4 @@
-__all__ = ["F", "FArray1D", "FArray2D", "FArrayND"]
+__all__ = ["F", "FArray1D", "FArray2D", "FArray"]
 
 from typing import Literal, TypeAlias, TypedDict, TypeVar
 
@@ -7,10 +7,11 @@ import numpy as np
 f32 = np.float32
 f64 = np.float64
 F = TypeVar("F", f32, f64)
+D = TypeVar("D", tuple[int], tuple[int, int])
 
+FArray: TypeAlias = np.ndarray[D, np.dtype[F]]
 FArray1D: TypeAlias = np.ndarray[tuple[int], np.dtype[F]]
 FArray2D: TypeAlias = np.ndarray[tuple[int, int], np.dtype[F]]
-FArrayND: TypeAlias = np.ndarray[tuple[int, ...], np.dtype[F]]
 
 
 class AlphaDict(TypedDict):
