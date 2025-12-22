@@ -12,9 +12,15 @@ import numpy as np
 import rlic
 
 from lick import _api
-from lick._image_processing import HistogramEqualizer, ImageProcessor, Normalizer
+from lick._image_processing import (
+    AlphaDict,
+    HistogramEqualizer,
+    ImageProcessor,
+    MixMulDict,
+    Normalizer,
+)
 from lick._interpolation import Grid, Interpolator, Interval, Mesh, Method
-from lick._typing import AlphaDict, D, F, FArray, FArray1D, FArray2D, MixMulDict
+from lick._typing import D, F, FArray, FArray1D, FArray2D
 
 if sys.version_info >= (3, 11):
     from typing import NamedTuple, assert_never

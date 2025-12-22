@@ -1,21 +1,31 @@
 __all___ = [
+    "AlphaDict",
     "HistogramEqualizer",
     "Identity",
     "ImageProcessor",
+    "MixMulDict",
     "Normalizer",
     "NorthWestLightSource",
 ]
 import sys
 from dataclasses import dataclass
 from enum import Enum, auto
-from typing import Protocol
+from typing import Literal, Protocol, TypedDict
 
-from lick._typing import AlphaDict, F, FArray2D, MixMulDict
+from lick._typing import F, FArray2D
 
 if sys.version_info >= (3, 11):
     from typing import assert_never
 else:
     from typing_extensions import assert_never
+
+
+class AlphaDict(TypedDict):
+    alpha: float
+
+
+class MixMulDict(TypedDict):
+    mix: Literal["mul"]
 
 
 class ImageProcessor(Protocol):

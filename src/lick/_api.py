@@ -15,14 +15,16 @@ from enum import Enum, auto
 from typing import Any, Literal, overload
 
 from lick._image_processing import (
+    AlphaDict,
     Identity,
     ImageProcessor,
     Layering,
     LayeringMode,
+    MixMulDict,
     NorthWestLightSource,
 )
 from lick._interpolation import Grid, Mesh
-from lick._typing import AlphaDict, D, F, FArray, FArray1D, FArray2D, MixMulDict
+from lick._typing import D, F, FArray, FArray1D, FArray2D
 
 if sys.version_info >= (3, 11):
     from typing import assert_never

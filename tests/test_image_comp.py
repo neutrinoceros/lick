@@ -9,7 +9,7 @@ import pytest
 from numpy.typing import NDArray
 
 from lick import lick_box_plot
-from lick._typing import AlphaDict, MixMulDict
+from lick._image_processing import AlphaDict, MixMulDict
 
 FArray: TypeAlias = NDArray[np.dtype("float64")]
 
