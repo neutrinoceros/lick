@@ -4,7 +4,6 @@ __all___ = [
     "Identity",
     "ImageProcessor",
     "MixMulDict",
-    "Normalizer",
     "NorthWestLightSource",
 ]
 import sys
@@ -89,14 +88,6 @@ class HistogramEqualizer:
         # Unfortunately, np.interp currently always promotes to float64, so we
         # have to cast back to single precision when float32 output is desired
         return out.astype(image.dtype, copy=False)  # type: ignore[no-any-return]
-
-
-@dataclass(slots=True, frozen=True)
-class Normalizer:
-    def process(self, image: FArray2D[F]) -> FArray2D[F]:
-        import numpy as np
-
-        return image / np.abs(image).max()  # type: ignore[no-any-return]
 
 
 class LayeringMode(Enum):
