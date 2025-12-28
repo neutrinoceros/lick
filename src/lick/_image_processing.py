@@ -48,8 +48,10 @@ class NorthWestLightSource:
         return ls.hillshade(image, vert_exag=5).astype(image.dtype, copy=False)  # type: ignore[no-any-return]
 
 
-@dataclass(slots=True, frozen=True)
+@dataclass(kw_only=True, slots=True, frozen=True)
 class HistogramEqualizer:
+    nbins: int
+
     def process(self, image: FArray2D[F]) -> FArray2D[F]:
         # adapted from scikit-image
         """Return image after histogram equalization.
@@ -76,7 +78,7 @@ class HistogramEqualizer:
         """
         import numpy as np
 
-        hist, bin_edges = np.histogram(image.ravel(), bins=256, range=None)
+        hist, bin_edges = np.histogram(image.ravel(), bins=self.nbins)
         bin_centers = (bin_edges[:-1] + bin_edges[1:]) / 2.0
 
         cdf = hist.cumsum()

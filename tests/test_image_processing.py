@@ -3,6 +3,7 @@ import numpy.testing as npt
 import pytest
 
 from lick._image_processing import (
+    HistogramEqualizer,
     Identity,
     Layering,
     LayeringMode,
@@ -26,6 +27,47 @@ def test_north_west_list_source(dtype):
     result = processor.process(array)
     assert result.dtype == dtype
     assert not np.any(result == array)
+
+
+@pytest.mark.parametrize(
+    "nbins, min_rms_reduction",
+    [
+        (12, 2.0),
+        (64, 10.0),
+        (256, 50.0),
+    ],
+)
+def test_historgram_equalization(nbins, min_rms_reduction):
+    # histogram equalization produces a new image whose cumulative
+    # distribution function (cdf) should be close(r) to a straight line
+    # (i.e., approaching a flat intensity distribution)
+    # This test check this property from an initial image made of gaussian
+    # noise.
+    # Expected rms reduction factors (min_rms_reduction) are empirical, i.e.,
+    # slightly looser than what the original implementation was able to achieve
+
+    IMAGE_SHAPE = (256, 128)
+    prng = np.random.default_rng(0)
+    image = prng.normal(size=np.prod(IMAGE_SHAPE)).reshape(IMAGE_SHAPE)
+
+    equalizer = HistogramEqualizer(nbins=nbins)
+
+    def normalized_cdf(a):
+        hist, bin_edges = np.histogram(a.ravel(), bins=equalizer.nbins)
+        cdf = hist.cumsum()
+        return cdf / float(cdf.max())
+
+    def rms(a, b):
+        return np.sqrt(np.mean((a - b) ** 2))
+
+    image_eq = equalizer.process(image)
+    cdf_in = normalized_cdf(image)
+    cdf_eq = normalized_cdf(image_eq)
+
+    id_func = np.linspace(0, 1, equalizer.nbins)
+    rms_in = rms(cdf_in, id_func)
+    rms_eq = rms(cdf_eq, id_func)
+    assert (rms_eq / rms_in) < min_rms_reduction
 
 
 @pytest.mark.parametrize("alpha", [0.0, 0.25, 0.5, 1.0])

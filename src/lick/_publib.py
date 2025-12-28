@@ -115,7 +115,7 @@ def lick(
     texture = rng.normal(0.5, 0.001**0.5, v1.shape).astype(v1.dtype, copy=False)
 
     image = rlic.convolve(texture, v1, v2, kernel=kernel, iterations=niter_lic)
-    processors: list[ImageProcessor] = [HistogramEqualizer(), post_lic]
+    processors: list[ImageProcessor] = [HistogramEqualizer(nbins=256), post_lic]
     for ip in processors:
         image = ip.process(image)
 
