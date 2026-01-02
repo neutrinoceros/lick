@@ -1,4 +1,4 @@
-__all___ = [
+__all__ = [
     "AlphaDict",
     "HistogramEqualizer",
     "Identity",
