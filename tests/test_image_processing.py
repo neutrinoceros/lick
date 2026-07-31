@@ -53,7 +53,7 @@ def test_histogram_equalization(nbins, min_rms_reduction):
     equalizer = HistogramEqualizer(nbins=nbins)
 
     def normalized_cdf(a):
-        hist, bin_edges = np.histogram(a.ravel(), bins=equalizer.nbins)
+        hist, _bin_edges = np.histogram(a.ravel(), bins=equalizer.nbins)
         cdf = hist.cumsum()
         return cdf / float(cdf.max())
 
