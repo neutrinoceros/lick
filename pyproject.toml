@@ -58,7 +58,7 @@ include = ["CITATION.cff"]
 [tool.ruff.lint]
 exclude = ["*__init__.py"]
 ignore = ["E501"]
-select = [
+extend-select = [
     "E",
     "F",
     "W",
