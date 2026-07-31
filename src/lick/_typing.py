@@ -1,4 +1,4 @@
-__all__ = ["F", "FArray1D", "FArray2D", "FArray"]
+__all__ = ["F", "FArray", "FArray1D", "FArray2D"]
 
 from typing import TypeAlias, TypeVar
 

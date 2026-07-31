@@ -1,14 +1,14 @@
 __all__ = [
+    "UNSET",
+    "LayeringMode",
+    "UnsetType",
     "get_grid_or_mesh",
     "get_indexing",
     "get_kernel",
     "get_layering",
-    "get_niter_lic",
     "get_mesh",
+    "get_niter_lic",
     "get_post_lic",
-    "LayeringMode",
-    "UNSET",
-    "UnsetType",
 ]
 import warnings
 from enum import Enum, auto
@@ -166,7 +166,7 @@ def get_kernel(
 
 
 def get_post_lic(
-    post_lic: Literal[None, "north-west-light-source"] | ImageProcessor | UnsetType,
+    post_lic: Literal["north-west-light-source"] | None | ImageProcessor | UnsetType,
     *,
     light_source: bool | UnsetType,
 ) -> ImageProcessor:
