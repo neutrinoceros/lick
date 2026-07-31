@@ -92,7 +92,8 @@ def lick(
     | Literal["auto-adjust", "auto-legacy"]
     | _api.UnsetType = _api.UNSET,
     kernel_length: int | _api.UnsetType = _api.UNSET,
-    post_lic: Literal[None, "north-west-light-source"]
+    post_lic: Literal["north-west-light-source"]
+    | None
     | ImageProcessor
     | _api.UnsetType = _api.UNSET,
     light_source: bool | _api.UnsetType = _api.UNSET,
@@ -147,7 +148,8 @@ def lick_box(
     | Literal["auto-adjust", "auto-legacy"]
     | _api.UnsetType = _api.UNSET,
     kernel_length: int | _api.UnsetType = _api.UNSET,
-    post_lic: Literal[None, "north-west-light-source"]
+    post_lic: Literal["north-west-light-source"]
+    | None
     | ImageProcessor
     | _api.UnsetType = _api.UNSET,
     light_source: bool | _api.UnsetType = _api.UNSET,
@@ -214,7 +216,8 @@ def lick_box_plot(
     | Literal["auto-adjust", "auto-legacy"]
     | _api.UnsetType = _api.UNSET,
     kernel_length: int | _api.UnsetType = _api.UNSET,
-    post_lic: Literal[None, "north-west-light-source"]
+    post_lic: Literal["north-west-light-source"]
+    | None
     | ImageProcessor
     | _api.UnsetType = _api.UNSET,
     light_source: bool | _api.UnsetType = _api.UNSET,
